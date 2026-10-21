@@ -33,10 +33,10 @@ def client_config() -> dict:
     """OAuth client JSON from $GOOGLE_OAUTH_CLIENT_JSON (contents or path) or ~/.config/photo-sorter/client_secret.json."""
     raw = os.environ.get("GOOGLE_OAUTH_CLIENT_JSON")
     if raw:
-        return json.loads(raw) if raw.lstrip().startswith("{") else json.loads(Path(raw).read_text())
+        return json.loads(raw) if raw.lstrip().startswith("{") else json.loads(Path(raw).read_text(encoding="utf-8"))
     p = CONFIG_DIR / "client_secret.json"
     if p.exists():
-        return json.loads(p.read_text())
+        return json.loads(p.read_text(encoding="utf-8"))
     raise FileNotFoundError(
         f"No OAuth client found. Create one in the Google Cloud console and save it as {p} "
         "(or set GOOGLE_OAUTH_CLIENT_JSON). See README > Google Cloud setup."
@@ -60,7 +60,7 @@ def load_token(path: Path = TOKEN_PATH):
     creds = Credentials.from_authorized_user_file(str(path), SCOPES)
     if creds.expired and creds.refresh_token:
         creds.refresh(Request())
-        path.write_text(creds.to_json())
+        path.write_text(creds.to_json(), encoding="utf-8")
     return creds if creds.valid else None
 
 
@@ -70,7 +70,7 @@ def login_installed(path: Path = TOKEN_PATH):
     flow = InstalledAppFlow.from_client_config(client_config(), SCOPES)
     creds = flow.run_local_server(port=0, prompt="consent", access_type="offline")
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(creds.to_json())
+    path.write_text(creds.to_json(), encoding="utf-8")
     try:
         path.chmod(0o600)
     except OSError:

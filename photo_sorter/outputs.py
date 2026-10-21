@@ -72,7 +72,7 @@ class PhotosSink:
             raise ImportError("photoscript is not installed: run `uv sync --extra photos`") from e
         self.size, self.dry_run = size, dry_run
         self.ledger = ledger or Path("results/photos-imported.txt")
-        self.done = set(self.ledger.read_text().split()) if self.ledger.exists() else set()
+        self.done = set(self.ledger.read_text(encoding="utf-8").split()) if self.ledger.exists() else set()
         self.tmp = Path(tempfile.mkdtemp(prefix="photo-sorter-"))
         self.pending: dict[str, list[Asset]] = {}
         self.written = self.skipped = 0
@@ -117,7 +117,7 @@ class PhotosSink:
                 self.written += len(paths)
                 self.done.update(ids)
                 self.ledger.parent.mkdir(parents=True, exist_ok=True)
-                self.ledger.write_text("\n".join(sorted(self.done)) + "\n")
+                self.ledger.write_text("\n".join(sorted(self.done)) + "\n", encoding="utf-8")
             for p in paths:
                 Path(p).unlink(missing_ok=True)
             print(f"  '{' / '.join(split_path(category))}': imported {len(paths)}")

@@ -1380,7 +1380,7 @@ def create_app(cfg: Config) -> FastAPI:
 
     @app.get("/favicon.svg")
     def favicon():
-        svg = (Path(__file__).parent / "templates" / "_logo.svg").read_text()
+        svg = (Path(__file__).parent / "templates" / "_logo.svg").read_text(encoding="utf-8")
         return Response(svg, media_type="image/svg+xml", headers={"Cache-Control": "public, max-age=86400"})
 
     @app.get("/healthz")

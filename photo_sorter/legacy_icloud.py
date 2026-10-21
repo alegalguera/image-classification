@@ -45,14 +45,14 @@ def fetch(url) -> int:
 def _read(path: Path) -> dict[str, dict]:
     if not path.exists():
         return {}
-    with path.open(newline="") as f:
+    with path.open(newline="", encoding="utf-8") as f:
         return {r["asset_id"]: r for r in csv.DictReader(f)}
 
 
 def _write(path: Path, rows: dict[str, dict]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_suffix(".tmp")
-    with tmp.open("w", newline="") as f:
+    with tmp.open("w", newline="", encoding="utf-8") as f:
         w = csv.DictWriter(f, fieldnames=FIELDS, extrasaction="ignore")
         w.writeheader()
         w.writerows(rows.values())

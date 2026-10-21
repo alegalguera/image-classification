@@ -58,14 +58,14 @@ def test_crud(tmp_path):
     t2.save()
     assert Taxonomy(p).keys() == ["Sponges"]
     # the config loader sees the same thing and remembers the file path
-    (tmp_path / "c.json").write_text('{"categories_file": "CATEGORIES.md", "source": {"kind": "local", "root": "/tmp"}}')
+    (tmp_path / "c.json").write_text('{"categories_file": "CATEGORIES.md", "source": {"kind": "local", "root": "/tmp"}}', encoding="utf-8")
     cfg = load_config(tmp_path / "c.json")
     assert cfg.categories == {"Sponges": "all sponges"} and cfg.categories_path == p
 
 
 def test_empty_file_is_allowed(tmp_path):
-    (tmp_path / "CATEGORIES.md").write_text("# Categories\n\nnothing yet\n")
-    (tmp_path / "c.json").write_text('{"categories_file": "CATEGORIES.md", "source": {"kind": "local", "root": "/tmp"}}')
+    (tmp_path / "CATEGORIES.md").write_text("# Categories\n\nnothing yet\n", encoding="utf-8")
+    (tmp_path / "c.json").write_text('{"categories_file": "CATEGORIES.md", "source": {"kind": "local", "root": "/tmp"}}', encoding="utf-8")
     cfg = load_config(tmp_path / "c.json")
     assert cfg.categories == {} and cfg.all_categories == {"Review"}
 

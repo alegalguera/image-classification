@@ -145,11 +145,11 @@ def load_config(path: str | Path) -> Config:
     if not p.exists():
         raise FileNotFoundError(f"config not found: {p}")
     if p.suffix.lower() == ".json":
-        cfg = _from_json(json.loads(p.read_text()), p.parent)
+        cfg = _from_json(json.loads(p.read_text(encoding="utf-8")), p.parent)
     elif p.suffix.lower() in (".md", ".markdown"):
         from .taxonomy import FileCategories
 
-        cfg = _from_markdown(p.read_text())
+        cfg = _from_markdown(p.read_text(encoding="utf-8"))
         cfg.categories_store = FileCategories(p)
     else:
         raise ValueError(f"config must be .json or .md, got {p.suffix}")
@@ -222,7 +222,7 @@ def source_from(text: str) -> tuple[str, str]:
 def remembered_folder() -> str | None:
     """The photo folder picked last time on this computer (written by the web app's setup page)."""
     try:
-        return json.loads((APP_DIR / "app.json").read_text()).get("folder") or None
+        return json.loads((APP_DIR / "app.json").read_text(encoding="utf-8")).get("folder") or None
     except (OSError, ValueError, AttributeError):
         return None
 
@@ -230,12 +230,12 @@ def remembered_folder() -> str | None:
 def remember_folder(folder: str) -> None:
     p = APP_DIR / "app.json"
     try:
-        data = json.loads(p.read_text())
+        data = json.loads(p.read_text(encoding="utf-8"))
     except (OSError, ValueError):
         data = {}
     data["folder"] = folder
     p.parent.mkdir(parents=True, exist_ok=True)
-    p.write_text(json.dumps(data, indent=2) + "\n")
+    p.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
 
 
 def base_config(hosted: bool = False) -> Config:

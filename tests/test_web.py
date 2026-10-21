@@ -19,9 +19,9 @@ def rows(html: str, kind: str) -> int:
 
 def build(root, tmp_path, monkeypatch, n=70, cats="- Photos - Red: red things\n- Photos - Green\n- Photos - Blue\n"):
     monkeypatch.setenv("PHOTO_SORTER_SYNC", "1")
-    (tmp_path / "CATEGORIES.md").write_text("# Categories\n\n" + cats)
+    (tmp_path / "CATEGORIES.md").write_text("# Categories\n\n" + cats, encoding="utf-8")
     cfgp = tmp_path / "c.json"
-    cfgp.write_text(json.dumps({"categories_file": "CATEGORIES.md", "source": {"kind": "local", "root": str(root)}, "min_confidence": 0.1}))
+    cfgp.write_text(json.dumps({"categories_file": "CATEGORIES.md", "source": {"kind": "local", "root": str(root)}, "min_confidence": 0.1}), encoding="utf-8")
     for i in range(n):
         (root / "Inbox" / f"img_{i:03d}.jpg").write_bytes(make_image(RED if i % 2 else GREEN))
 
@@ -142,7 +142,7 @@ def test_show_more_pagination(root, tmp_path, monkeypatch):
 
 def test_empty_inbox_guide(root, tmp_path, monkeypatch):
     c, _, _ = build(root, tmp_path, monkeypatch, n=0)
-    (root / "Inbox" / "notes.txt").write_text("x")
+    (root / "Inbox" / "notes.txt").write_text("x", encoding="utf-8")
     c.post("/scan")
     r = c.get("/")
     assert "No new photos to sort." in r.text and str(root / "Inbox") in r.text and "Copy path" in r.text
@@ -175,7 +175,7 @@ def test_categories_crud_and_predictions_cleared(setup):
     assert "added" in c.post("/categories/add", data={"parent": "Divers", "name": "Training"}).headers["location"]
     assert "saved" in c.post("/categories/update", data={"key": "Photos - Green", "name": "Photos - Verde", "description": "green"}).headers["location"]
     assert "removed" in c.post("/categories/delete", data={"key": "Photos - Blue"}).headers["location"]
-    text = (tmp_path / "CATEGORIES.md").read_text()
+    text = (tmp_path / "CATEGORIES.md").read_text(encoding="utf-8")
     assert "- Divers: people underwater\n  - Training" in text and "Photos - Verde: green" in text and "Blue" not in text
     assert c.post("/categories/add", data={"parent": "", "name": "divers"}).headers["location"].startswith("/categories?err=")
     page = c.get("/")
@@ -219,15 +219,15 @@ def test_category_outliner_htmx(setup):
     assert "added Bleaching under Coral" in r.text and 'class="node folder"' in r.text
     r = c.post("/categories/indent", data={"key": "Photos - Green"}, headers=hx)
     assert "now under Photos - Red" in r.text and "↶ Undo" in r.text
-    assert "- Photos - Red: red things\n  - Photos - Green" in (tmp_path / "CATEGORIES.md").read_text()
+    assert "- Photos - Red: red things\n  - Photos - Green" in (tmp_path / "CATEGORIES.md").read_text(encoding="utf-8")
     r = c.post("/categories/undo", headers=hx)
-    assert "undone" in r.text and "- Photos - Red: red things\n- Photos - Green" in (tmp_path / "CATEGORIES.md").read_text()
+    assert "undone" in r.text and "- Photos - Red: red things\n- Photos - Green" in (tmp_path / "CATEGORIES.md").read_text(encoding="utf-8")
     r = c.post("/categories/delete", data={"key": "Coral"}, headers=hx)
-    assert "removed Coral and 1 sub-category" in r.text and "Coral" not in (tmp_path / "CATEGORIES.md").read_text()
+    assert "removed Coral and 1 sub-category" in r.text and "Coral" not in (tmp_path / "CATEGORIES.md").read_text(encoding="utf-8")
     c.post("/categories/undo", headers=hx)
-    assert "- Coral: hard coral\n  - Bleaching" in (tmp_path / "CATEGORIES.md").read_text()
+    assert "- Coral: hard coral\n  - Bleaching" in (tmp_path / "CATEGORIES.md").read_text(encoding="utf-8")
     r = c.post("/categories/update", data={"key": "Coral › Bleaching", "name": "Pale", "description": "white coral"}, headers=hx)
-    assert "✓ saved" in r.text and "  - Pale: white coral" in (tmp_path / "CATEGORIES.md").read_text()
+    assert "✓ saved" in r.text and "  - Pale: white coral" in (tmp_path / "CATEGORIES.md").read_text(encoding="utf-8")
     r = c.post("/categories/add", data={"parent": "", "name": "coral"}, headers=hx)
     assert "✕" in r.text and "already exists" in r.text
 
@@ -300,7 +300,7 @@ def test_examples_web_search_and_fetch(setup, monkeypatch):
     assert "already an example" in again.text and "hx-trigger" not in again.headers
     assert len(list((root / "Photos - Red" / "_training_data").iterdir())) == 1
     assert (root / "Photos - Red" / "_training_data" / "red_thing_0_id0.jpg").exists()
-    log = (root / ".sorter" / "examples.jsonl").read_text()
+    log = (root / ".sorter" / "examples.jsonl").read_text(encoding="utf-8")
     assert '"license": "CC BY 2.0"' in log and '"landing": "https://l/0"' in log
     monkeypatch.setattr(websearch, "search_images", lambda *a, **k: (_ for _ in ()).throw(websearch.SearchError("offline")))
     assert "✕ offline" in c.get("/examples/search", params={"cat": "Photos - Red", "q": "x"}).text
@@ -321,10 +321,10 @@ def test_teach_from_review_and_new_category_from_a_row(setup):
     r = c.post("/file", data={"item_id": ids[1], "category": "__new__", "new_category": "Sea Turtle"})
     assert r.status_code == 200 and "sea_turtle_001.jpg" in r.text
     assert "in the new category Sea Turtle" in json.loads(r.headers["hx-trigger"])["toast"]
-    assert "- Sea Turtle" in (tmp_path / "CATEGORIES.md").read_text() and (root / "Sea Turtle" / "sea_turtle_001.jpg").exists()
+    assert "- Sea Turtle" in (tmp_path / "CATEGORIES.md").read_text(encoding="utf-8") and (root / "Sea Turtle" / "sea_turtle_001.jpg").exists()
     # and teach another one into it, reusing the existing category (case-insensitive)
     t = c.post("/examples/teach", data={"item_id": ids[2], "category": "__new__", "new_category": "sea turtle"})
-    assert "Sea Turtle" in t.text and (tmp_path / "CATEGORIES.md").read_text().count("Sea Turtle") == 1
+    assert "Sea Turtle" in t.text and (tmp_path / "CATEGORIES.md").read_text(encoding="utf-8").count("Sea Turtle") == 1
     assert c.post("/file", data={"item_id": ids[3], "category": "__new__", "new_category": ""}).status_code == 400
 
 
@@ -390,7 +390,7 @@ def test_move_from_filed_list_and_examples_to_new_category(setup):
     rid = re.search(r'name="rec" value="([^"]+)"', f).group(1)
     t = c.post("/refile", data={"rec": rid, "category": "__new__", "new_category": "Crimson"}, headers={"HX-Request": "true"})
     assert "Moved to <b>Crimson</b>" in t.text and "examples-changed" in t.headers["hx-trigger"]
-    assert "- Crimson" in (tmp_path / "CATEGORIES.md").read_text() and (root / "Crimson" / "crimson_001.jpg").exists()
+    assert "- Crimson" in (tmp_path / "CATEGORIES.md").read_text(encoding="utf-8") and (root / "Crimson" / "crimson_001.jpg").exists()
     # examples can move between categories but never into the review folder
     c.post("/examples/upload", data={"cat": "Photos - Blue"}, files=[("files", ("e.jpg", make_image(RED), "image/jpeg"))])
     r = c.post("/examples/move", data={"cat": "Photos - Blue", "ids": ["ex:Photos - Blue/_training_data/e.jpg"], "category": "Review"})

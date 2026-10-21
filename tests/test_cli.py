@@ -8,10 +8,10 @@ from test_core import ConstClassifier
 
 
 def _cfg_file(tmp_path, root, **extra):
-    (tmp_path / "CATEGORIES.md").write_text("# T\n\n- 📁 Photos - Red\n- Photos - Blue\n")
+    (tmp_path / "CATEGORIES.md").write_text("# T\n\n- 📁 Photos - Red\n- Photos - Blue\n", encoding="utf-8")
     cfg = {"categories_file": "CATEGORIES.md", "source": {"kind": "local", "root": str(root)}, **extra}
     p = tmp_path / "c.json"
-    p.write_text(json.dumps(cfg))
+    p.write_text(json.dumps(cfg), encoding="utf-8")
     return str(p)
 
 

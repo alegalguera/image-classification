@@ -13,6 +13,8 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
     runs-on: ${{ matrix.os }}
+    env:
+      UV_PYTHON: "3.12"    # what the installers use; runners may default to a Python that PyTorch doesn't support yet
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5

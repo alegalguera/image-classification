@@ -56,21 +56,21 @@ def test_laptop_first_run_picks_folder_inbox_and_categories(app_dir, tmp_path):
 
     r = c.post("/setup/folder", data={"kind": "local", "path": str(photos)})
     assert r.headers["location"] == "/setup/categories"                           # no inbox question: the folder itself is sorted
-    assert json.loads((app_dir / "app.json").read_text())["folder"] == str(photos.resolve())
-    assert json.loads((photos / ".sorter" / "settings.json").read_text()) == {"inbox": ""}
+    assert json.loads((app_dir / "app.json").read_text(encoding="utf-8"))["folder"] == str(photos.resolve())
+    assert json.loads((photos / ".sorter" / "settings.json").read_text(encoding="utf-8")) == {"inbox": ""}
     # a separate folder for new photos stays available as a setting
     r = c.get("/setup/inbox")
     assert 'value="self" checked' in r.text and "2 photos are there now" in r.text
     r = c.post("/setup/inbox", data={"mode": "sub"})
     assert r.headers["location"] == "/setup/categories" and (photos / "Inbox").is_dir()
-    assert json.loads((photos / ".sorter" / "settings.json").read_text()) == {"inbox": "Inbox"}
+    assert json.loads((photos / ".sorter" / "settings.json").read_text(encoding="utf-8")) == {"inbox": "Inbox"}
 
     r = c.get("/setup/categories")
     assert "Bleaching" in r.text and "Sponges" in r.text and "Use these 2" in r.text
     assert "Review" not in r.text.split("tree-preview")[1].split("</div>")[0] and "_training_data" not in r.text
     r = c.post("/setup/categories", data={"mode": "folders"})
     assert r.headers["location"] == "/"
-    assert "- Coral\n  - Bleaching\n- Sponges\n" in (photos / "CATEGORIES.md").read_text()
+    assert "- Coral\n  - Bleaching\n- Sponges\n" in (photos / "CATEGORIES.md").read_text(encoding="utf-8")
     page = c.get("/")
     assert page.status_code == 200 and 'href="/setup"' in page.text and "Categories<b>2</b>" in page.text
 
@@ -86,8 +86,8 @@ def test_laptop_first_run_picks_folder_inbox_and_categories(app_dir, tmp_path):
 def test_folder_brings_its_own_settings_and_category_list(app_dir, tmp_path, monkeypatch, capsys):
     folder = tmp_path / "shared"
     (folder / ".sorter").mkdir(parents=True)
-    (folder / "CATEGORIES.md").write_text("# Categories\n\n- Red: red things\n- Green\n")
-    (folder / ".sorter" / "settings.json").write_text('{"inbox": "", "min_confidence": 0.3}')
+    (folder / "CATEGORIES.md").write_text("# Categories\n\n- Red: red things\n- Green\n", encoding="utf-8")
+    (folder / ".sorter" / "settings.json").write_text('{"inbox": "", "min_confidence": 0.3}', encoding="utf-8")
     (folder / "x.jpg").write_bytes(make_image(RED))
     monkeypatch.chdir(tmp_path)                       # no categories.json here
 
@@ -105,7 +105,7 @@ def test_folder_brings_its_own_settings_and_category_list(app_dir, tmp_path, mon
     c.get("/login")
     assert "Categories<b>2</b>" in c.get("/").text
     c.post("/categories/add", data={"parent": "", "name": "Blue", "description": "blue things"})
-    assert "- Blue: blue things" in (folder / "CATEGORIES.md").read_text()
+    assert "- Blue: blue things" in (folder / "CATEGORIES.md").read_text(encoding="utf-8")
     with (folder / "CATEGORIES.md").open("a") as f:
         f.write("- Teal\n")
     assert "Categories<b>4</b>" in c.get("/").text
@@ -196,13 +196,13 @@ def test_ready_made_lists(app_dir, tmp_path):
     assert "Coral reef restoration" in page.text and "Use this list" in page.text and "See the list" in page.text
     r = c.post("/setup/categories", data={"mode": "preset:coral-reef-restoration"})
     assert r.headers["location"] == "/"
-    text = (photos / "CATEGORIES.md").read_text()
+    text = (photos / "CATEGORIES.md").read_text(encoding="utf-8")
     assert "    - APAL: Acropora palmata" in text and "## Notes" in text
     assert f"Categories<b>{reef['leaves']}</b>" in c.get("/").text
     # a list that exists is never replaced from here
     assert c.get("/setup/categories").headers["location"] == "/categories"
     assert "already+has+categories" in c.post("/setup/categories", data={"mode": "preset:reef-basics"}).headers["location"]
-    assert "APAL" in (photos / "CATEGORIES.md").read_text()
+    assert "APAL" in (photos / "CATEGORIES.md").read_text(encoding="utf-8")
 
 
 def test_folder_itself_is_sorted_and_guide_says_where(app_dir, tmp_path):

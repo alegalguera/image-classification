@@ -116,7 +116,7 @@ def test_manifest_only_appends_and_survives_a_torn_line(root, cfg):
     sorter.file_all(preds)
     assert writes == ["manifest.jsonl"]                              # one write for the whole batch
     path = root / ".sorter/manifest.jsonl"
-    assert len(path.read_text().splitlines()) == 3
+    assert len(path.read_text(encoding="utf-8").splitlines()) == 3
     path.write_bytes(path.read_bytes() + b'{"op": "mo')            # a crash cut the last line short
     m = Manifest(st)
     assert len(m.active_moves()) == 3
@@ -165,15 +165,15 @@ def test_review_move_keeps_original_name_and_keep_mode(root, cfg):
 
 
 def test_config_json_source_and_defaults(tmp_path):
-    (tmp_path / "CATEGORIES.md").write_text("# T\n\n- 📁 Photos - Coral\n  - ✅ APAL: elkhorn\n- Videos - Coral\n- KML (ignored)\n")
-    (tmp_path / "c.json").write_text('{"categories_file": "CATEGORIES.md", "source": {"kind": "local", "root": "/tmp"}, "embeddings": {"knn_weight": 0.3}}')
+    (tmp_path / "CATEGORIES.md").write_text("# T\n\n- 📁 Photos - Coral\n  - ✅ APAL: elkhorn\n- Videos - Coral\n- KML (ignored)\n", encoding="utf-8")
+    (tmp_path / "c.json").write_text('{"categories_file": "CATEGORIES.md", "source": {"kind": "local", "root": "/tmp"}, "embeddings": {"knn_weight": 0.3}}', encoding="utf-8")
     cfg = load_config(tmp_path / "c.json")
     assert cfg.provider == "siglip" and cfg.threshold == 0.15 and cfg.embeddings["knn_weight"] == 0.3
     assert cfg.embeddings["knn_k"] == 3 and cfg.source_kind == "local"
     assert split_path(next(iter(cfg.categories))) == ["Photos - Coral", "APAL"]
     assert cfg.video_categories == {"Videos - Coral": "Videos - Coral"}
     # legacy album key still works
-    (tmp_path / "d.json").write_text('{"categories_file": "CATEGORIES.md", "album": "https://photos.icloud.com/shared/album/X/", "model": {"provider": "claude"}}')
+    (tmp_path / "d.json").write_text('{"categories_file": "CATEGORIES.md", "album": "https://photos.icloud.com/shared/album/X/", "model": {"provider": "claude"}}', encoding="utf-8")
     cfg2 = load_config(tmp_path / "d.json")
     assert cfg2.source_kind == "icloud" and cfg2.album.endswith("/X/") and cfg2.provider == "claude" and cfg2.threshold == 0.7
 

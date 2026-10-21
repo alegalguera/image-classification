@@ -82,7 +82,7 @@ def machine() -> str:
             name = subprocess.run(["sysctl", "-n", "machdep.cpu.brand_string"], capture_output=True, text=True, timeout=2).stdout.strip() or name
             mem = int(subprocess.run(["sysctl", "-n", "hw.memsize"], capture_output=True, text=True, timeout=2).stdout.strip() or 0)
         elif sys.platform.startswith("linux"):
-            with open("/proc/cpuinfo") as f:
+            with open("/proc/cpuinfo", encoding="utf-8", errors="replace") as f:
                 name = next((ln.split(":", 1)[1].strip() for ln in f if ln.startswith("model name")), name)
             mem = os.sysconf("SC_PAGE_SIZE") * os.sysconf("SC_PHYS_PAGES")
         elif sys.platform == "win32":
@@ -112,7 +112,9 @@ def _windows_machine(name: str) -> tuple[str, int]:
 
     st = MemoryStatus()
     st.dwLength = ctypes.sizeof(st)
-    ok = ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(st))
+    kernel32 = ctypes.WinDLL("kernel32")
+    kernel32.GlobalMemoryStatusEx.argtypes = [ctypes.POINTER(MemoryStatus)]
+    ok = kernel32.GlobalMemoryStatusEx(ctypes.byref(st))
     return name, int(st.total) if ok else 0
 
 
@@ -139,8 +141,11 @@ def _windows_peak_rss() -> int:
 
         c = Counters()
         c.cb = ctypes.sizeof(c)
-        kernel32 = ctypes.windll.kernel32
+        kernel32 = ctypes.WinDLL("kernel32")       # a private handle, so the types below don't leak to other code
         kernel32.GetCurrentProcess.restype = wintypes.HANDLE
+        kernel32.GetCurrentProcess.argtypes = []
+        kernel32.K32GetProcessMemoryInfo.restype = wintypes.BOOL
+        kernel32.K32GetProcessMemoryInfo.argtypes = [wintypes.HANDLE, ctypes.POINTER(Counters), wintypes.DWORD]
         if not kernel32.K32GetProcessMemoryInfo(kernel32.GetCurrentProcess(), ctypes.byref(c), c.cb):
             return 0
         return int(c.PeakWorkingSetSize)
