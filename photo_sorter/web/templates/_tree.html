@@ -1,0 +1,58 @@
+{% macro branch(nodes, path, flash, added) %}
+<ul class="tree-ul">
+{% for n in nodes %}{% set key = (path ~ ' › ' ~ n.name) if path else n.name %}
+  <li class="node {{ 'folder' if n.children else 'leaf' }}">
+    <div class="line {{ 'flash' if key == flash }}">
+      <span class="ico" title="{{ 'folder: photos go into its sub-categories' if n.children else 'photos are filed here' }}"></span>
+      <form class="edit" hx-post="/categories/update" hx-trigger="change, submit" hx-target="#tree" hx-swap="outerHTML">
+        <input type="hidden" name="key" value="{{ key }}">
+        <input class="nm" name="name" value="{{ n.name }}" size="{{ [n.name|length + 1, 4]|max }}" aria-label="name" autocomplete="off">
+        <input class="ds" name="description" value="{{ n.description }}" placeholder="{{ 'add a description…' if not n.children else '' }}" aria-label="description" autocomplete="off">
+      </form>
+      <span class="tools">
+        {% if not n.children %}<button type="button" class="tb exb" title="example images that teach the model what {{ n.name }} looks like"
+          hx-get="/examples?cat={{ key|urlencode }}" hx-target="next .expanel-slot" hx-swap="innerHTML"><i class="ex-ico"></i><span hx-get="/examples/count?cat={{ key|urlencode }}" hx-trigger="load, examples-changed from:body" hx-target="this" hx-swap="innerHTML"><b class="excount zero">·</b></span></button>{% else %}<span class="tb-spacer"></span>{% endif %}
+        <button type="button" class="tb add" title="add a sub-category under {{ n.name }}" onclick="addUnder(this)">+</button>
+        <button type="button" class="tb del" title="remove {{ n.name }}{{ ' and its sub-categories' if n.children }}" hx-post="/categories/delete" hx-vals='{{ {"key": key}|tojson }}' hx-target="#tree" hx-swap="outerHTML">−</button>
+        <span class="arrows">
+          <button type="button" class="tb" title="move up" hx-post="/categories/move" hx-vals='{{ {"key": key, "direction": -1}|tojson }}' hx-target="#tree" hx-swap="outerHTML">↑</button>
+          <button type="button" class="tb" title="move down" hx-post="/categories/move" hx-vals='{{ {"key": key, "direction": 1}|tojson }}' hx-target="#tree" hx-swap="outerHTML">↓</button>
+          {% if not loop.first %}<button type="button" class="tb" title="put under {{ loop.previtem.name }}" hx-post="/categories/indent" hx-vals='{{ {"key": key}|tojson }}' hx-target="#tree" hx-swap="outerHTML">→</button>{% endif %}
+          {% if path %}<button type="button" class="tb" title="move up one level" hx-post="/categories/outdent" hx-vals='{{ {"key": key}|tojson }}' hx-target="#tree" hx-swap="outerHTML">←</button>{% endif %}
+        </span>
+      </span>
+    </div>
+    <div class="expanel-slot"></div>
+    {% if n.children %}{{ branch(n.children, key, flash, added) }}{% endif %}
+    <form class="adder sub" hidden hx-post="/categories/add" hx-target="#tree" hx-swap="outerHTML">
+      <span class="ico new"></span>
+      <input type="hidden" name="parent" value="{{ key }}">
+      <input name="name" placeholder="new sub-category" title="new sub-category of {{ n.name }}" required autocomplete="off" {{ 'data-refocus' if added and flash.rsplit(' › ', 1)[0] == key and ' › ' in flash }}>
+      <input name="description" placeholder="what it looks like (optional)" autocomplete="off">
+      <button class="sm">Add</button><span class="muted esc">Esc to close</span>
+    </form>
+  </li>
+{% endfor %}
+</ul>
+{% endmacro %}
+<div id="tree" class="tree">
+  <div class="tree-status">
+    {% if err %}<span class="terr">✕ {{ err }}</span>
+    {% elif msg %}<span class="tok">✓ {{ msg }}</span>{% if undo %} <button class="sm ghost" hx-post="/categories/undo" hx-target="#tree" hx-swap="outerHTML">↶ Undo</button>{% endif %}
+    {% else %}{% set leaves = t.rows()|selectattr('2.is_leaf')|list|length %}{% set folders = t.rows()|length - leaves %}
+      <span class="muted">{{ leaves }} categor{{ 'y' if leaves == 1 else 'ies' }} to sort into{% if folders %} · {{ folders }} folder{{ 's' if folders != 1 }} grouping them{% endif %} · saved in {% if t.store.path is defined %}{{ t.store.path.name }}{% else %}the folder's CATEGORIES.md{% endif %}</span>{% endif %}
+  </div>
+  <div class="tree-box">
+    {% if t.roots %}{{ branch(t.roots, '', flash, added) }}{% else %}
+    <div class="tree-empty"><b>No categories yet.</b> Start with a few broad ones, for example <i>Coral</i>, <i>Sponge</i>, <i>Diver</i>, <i>People</i>. You can split them into sub-categories later.</div>{% endif %}
+    <form class="adder root" hx-post="/categories/add" hx-target="#tree" hx-swap="outerHTML">
+      <span class="ico new"></span>
+      <input type="hidden" name="parent" value="">
+      <input name="name" placeholder="+ add a category" required autocomplete="off" {{ 'data-refocus' if added and flash and ' › ' not in flash }}>
+      <input name="description" placeholder="what it looks like (optional)" autocomplete="off">
+      <button class="sm primary">Add</button>
+    </form>
+  </div>
+  {% if not cfg.is_embedding_provider %}<div class="hintbox warn">Examples are used by the SigLIP and Vertex models. The model in use now ({{ cfg.provider }}) ignores them.</div>{% endif %}
+  <p class="hint"><b>Examples</b> (the <i class="ex-ico"></i> button) teach the model by showing it photos: upload some, search the web, or use “＋ example” in the review list. Photos you file into a category count as examples too, and a picture teaches only one category. Tips: describe what the photos look like (“hard coral colonies on the reef”), it helps the model. Names starting with “Videos” are used for videos only. Renaming here does not rename folders that already hold filed photos. After changing the list, press Sort again.</p>
+</div>

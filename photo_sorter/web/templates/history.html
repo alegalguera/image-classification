@@ -1,0 +1,46 @@
+{% from "_macros.html" import category_select %}
+{% extends "base.html" %}{% block content %}
+<div class="eyebrow">History</div>
+<h1>What happened</h1>
+<p class="sub">Every move is recorded in <code>.sorter/manifest.jsonl</code> inside the photo folder. Undo takes a photo back one step (to the inbox, or to its previous category if it was moved). <b>Move</b> re-files a photo into another category; its example copies follow it.</p>
+<h2 style="margin:8px 0 10px">Spending in this folder</h2>
+{% if not runs %}<div class="banner">No sorting runs recorded yet. Each run is logged in <code>.sorter/runs.jsonl</code>.</div>{% else %}
+<div class="rc-grid totals">
+  <div><span>runs</span><b>{{ tot.runs }}</b><small>{{ tot.images }} images sorted</small></div>
+  <div><span>computed</span><b>{{ tot.computed }}</b><small>images the model actually looked at</small></div>
+  <div><span>tokens</span><b>{{ tot.tokens|num }}</b><small>image patches, text and API tokens</small></div>
+  <div><span>compute</span><b>{{ '%.0f'|format(tot.cpu_secs) }}s CPU</b><small>{{ '%.0f'|format(tot.wall_secs) }}s wall{% if tot.flops %} · ≈{{ tot.flops|num }}FLOP{% endif %}</small></div>
+  <div class="{{ 'free' if tot.cost_usd == 0 and not tot.cost_unknown }}"><span>money</span><b>{{ tot.cost_usd|usd }}</b><small>{{ 'some runs have no price set' if tot.cost_unknown else 'API charges (estimates)' }}</small></div>
+</div>
+<table class="plain" style="margin:14px 0 28px">
+  <tr><th>When</th><th>Model</th><th>Where</th><th>Images</th><th>Tokens</th><th>Compute</th><th>Cost</th></tr>
+  {% for r in runs %}
+  <tr><td class="muted">{{ r.ts[:16].replace('T', ' ') }}</td>
+      <td><b>{{ r.model }}</b>{% if r.version %} <code>@{{ r.version }}</code>{% endif %}</td>
+      <td class="muted" style="font-size:12px">{{ r.where }}</td>
+      <td>{{ r.images }}<span class="muted"> ({{ r.computed }} computed, {{ r.cached }} cached)</span></td>
+      <td>{% if r.input_tokens %}{{ r.input_tokens|num }} in / {{ r.output_tokens|num }} out{% else %}{{ (r.image_tokens + r.text_tokens)|num }}{% endif %}</td>
+      <td>{{ '%.1f'|format(r.wall_secs) }}s<span class="muted"> · {{ '%.1f'|format(r.cpu_secs) }}s CPU{% if r.flops %} · ≈{{ r.flops|num }}FLOP{% endif %}</span></td>
+      <td>{{ r.cost_usd|usd }}</td></tr>
+  {% endfor %}
+</table>{% endif %}
+<h2 style="margin:8px 0 10px">Moves</h2>
+<div style="display:grid; grid-template-columns: 1fr 300px; gap:24px; align-items:start">
+<div>
+  <div class="row" style="margin-bottom:12px"><strong>{{ moves|length }} move{{ 's' if moves|length != 1 }}</strong>
+    {% if moves %}<form method="post" action="/undo" onsubmit="return confirm('Undo the most recent move?')"><button class="sm">↶ Undo last</button></form>{% endif %}</div>
+  {% if not moves %}<div class="banner">No moves recorded yet.</div>{% else %}
+  <table class="plain">
+    <tr><th>When</th><th>Original</th><th>Filed as</th><th>Category</th><th>Sure</th><th>By</th><th></th></tr>
+    {% for r in moves %}
+    <tr><td class="muted">{{ r.ts[:16].replace('T',' ') }}</td><td>{{ r.orig_name }}</td><td>{{ r.new_name }}</td><td>{{ r.category }}</td>
+        <td>{{ '%.0f'|format(100 * r.confidence) }}%</td><td>{{ r.decided_by }}</td>
+        <td class="act" style="white-space:nowrap">{% if r.id %}<form method="post" action="/refile" style="display:inline-flex;gap:6px;align-items:center"><input type="hidden" name="rec" value="{{ r.id }}">{{ category_select(cfg, exclude=r.category, label='move to…') }}<button class="sm">Move</button></form>{% endif %}
+          <form method="post" action="/undo" style="display:inline"><input type="hidden" name="id" value="{{ r.id or '' }}"><input type="hidden" name="ts" value="{{ r.ts }}"><button class="sm ghost">↶ Undo</button></form></td></tr>
+    {% endfor %}
+  </table>{% endif %}
+</div>
+<div><div class="label" style="margin-top:0">Activity this session</div>
+  <ul class="timeline">{% for t, text in s.events %}<li><time>{{ t }}</time>{{ text }}</li>{% endfor %}</ul></div>
+</div>
+{% endblock %}

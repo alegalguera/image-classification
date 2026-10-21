@@ -1,0 +1,64 @@
+{% extends "base.html" %}{% block content %}
+<div class="setup">
+  <div class="steps">
+    <div class="step {{ 'active' if step == 'folder' else 'done' }}"><span class="n">{{ '1' if step == 'folder' else '✓' }}</span>Photo folder</div>
+    <div class="line {{ 'done' if step != 'folder' }}"></div>
+    <div class="step {{ 'active' if step == 'inbox' else ('done' if step == 'categories' else '') }}"><span class="n">{{ '✓' if step == 'categories' else '2' }}</span>New photos</div>
+    <div class="line {{ 'done' if step == 'categories' }}"></div>
+    <div class="step {{ 'active' if step == 'categories' }}"><span class="n">3</span>Categories</div>
+  </div>
+
+{% if step == 'folder' %}
+  <div class="eyebrow">Setup</div>
+  <h1>Where are your photos?</h1>
+  <p class="sub">Pick the folder to sort. Category folders are created inside it, and it keeps its own category list, so
+    everyone who opens the same folder sorts the same way.{% if current %} Now: <b>{{ current }}</b>{% endif %}</p>
+  {% if err %}<div class="banner err">{{ err }}</div>{% endif %}
+  <div class="cards">
+    {% if not hosted %}
+    <form class="card" method="post" action="/setup/folder">
+      <h2>💻 A folder on this computer</h2>
+      <p class="muted" style="margin:0">Includes Google Drive for Desktop: your Drive folders appear here too, no sign-in needed.</p>
+      {% include "_browse.html" %}
+    </form>
+    {% endif %}
+    <form class="card" method="post" action="/setup/folder">
+      <h2>☁️ A Google Drive folder</h2>
+      <p class="muted" style="margin:0">{% if hosted %}Photos stay in Drive; this server only looks at them and moves them for you.{% else %}Works without Drive for Desktop. Photos stay in Drive; only small previews are downloaded.{% endif %}</p>
+      {% include "_google.html" %}
+    </form>
+  </div>
+  {% if s %}<p class="hint"><a href="/">← back to sorting {{ s.sorter.storage.root_label|short }}</a></p>{% endif %}
+
+{% elif step == 'inbox' %}
+  <div class="eyebrow">Setup · {{ s.sorter.storage.root_label|short }}</div>
+  <h1>Where do new photos arrive?</h1>
+  <p class="sub">The tool sorts what it finds there into category folders. You can change this later on this page.</p>
+  <form method="post" action="/setup/inbox">
+    <label class="choice"><input type="radio" name="mode" value="sub" {{ 'checked' if mode == 'sub' }}>
+      <span><b>In an "Inbox" folder inside it</b>
+        <span class="muted">{% if has_sub %}There is one already.{% else %}It is created for you.{% endif %} Drop new photos there; sorted ones move out to their category folders.</span></span></label>
+    <label class="choice"><input type="radio" name="mode" value="self" {{ 'checked' if mode == 'self' }}>
+      <span><b>Straight into this folder</b>
+        <span class="muted">{% if at_top %}{{ at_top }} photo{{ 's' if at_top != 1 }} {{ 'are' if at_top != 1 else 'is' }} there now. {% endif %}Good for a shared Drive folder people already upload to. Category folders are created next to the photos.</span></span></label>
+    <button class="primary big">Continue →</button>
+  </form>
+
+{% else %}
+  <div class="eyebrow">Setup · {{ s.sorter.storage.root_label|short }}</div>
+  <h1>What should photos be sorted into?</h1>
+  <p class="sub">This folder has no category list yet. It is saved as <code>CATEGORIES.md</code> inside the folder, and you can edit it any time on the Categories page.</p>
+  <form method="post" action="/setup/categories">
+    {% if rows %}
+    <div class="card" style="background:#fff;border:2px solid var(--line);padding:20px 22px;margin-bottom:14px">
+      <h2>Use the folders that are already here</h2>
+      <div class="tree-preview">{% for key, depth, node in rows %}{{ '  ' * depth }}{{ '└ ' if depth else '' }}{{ node.name }}<br>{% endfor %}</div>
+      <p class="hint" style="margin:0 0 10px">{{ leaves }} categor{{ 'y' if leaves == 1 else 'ies' }}: photos are filed into the last folder of each branch. Add a few describing words to each on the Categories page afterwards; it helps the model.</p>
+      <div><button class="primary" name="mode" value="folders">Use these {{ leaves }} →</button></div>
+    </div>
+    {% endif %}
+    <button class="{{ 'ghost' if rows else 'primary big' }}" name="mode" value="empty">Start with an empty list{{ ' instead' if rows }} →</button>
+  </form>
+{% endif %}
+</div>
+{% endblock %}

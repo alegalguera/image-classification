@@ -1,0 +1,191 @@
+{# One-by-one viewer: big image, arrows to browse, numbered category tags; press 1-9 / Enter to file and move on. #}
+<dialog id="tri" aria-label="Sort one by one">
+  <div class="tri">
+    <div class="tri-top">
+      <b id="tri-title">Sort</b><span id="tri-pos" class="tri-pos"></span>
+      <div class="tri-bar"><i id="tri-prog"></i></div>
+      <span class="sp"></span>
+      <button type="button" class="ghost tri-x" onclick="Tri.close()" title="close (Esc)">✕</button>
+    </div>
+    <div class="tri-stage">
+      <button type="button" class="tri-nav" onclick="Tri.go(-1)" title="previous (←)">‹</button>
+      <div class="tri-img"><img id="tri-img" alt=""><div id="tri-done" class="tri-done" hidden></div></div>
+      <button type="button" class="tri-nav" onclick="Tri.go(1)" title="next (→)">›</button>
+    </div>
+    <div class="tri-info"><b id="tri-name"></b><span id="tri-why"></span></div>
+    <div id="tri-tags" class="tri-tags"></div>
+    <div class="tri-find">
+      <input id="tri-q" autocomplete="off" placeholder="type to find a category, or a new name to create it" aria-label="find or create a category">
+      <button type="button" class="primary" onclick="Tri.fileSel()" title="file into the highlighted category (Enter)">File ↵</button>
+      <button type="button" id="tri-ex" onclick="Tri.teach()" title="copy into the highlighted category's examples without moving it (Shift+Enter)">＋ example</button>
+      <button type="button" class="ghost" onclick="Tri.go(1)" title="leave it here for now (→)">Skip →</button>
+      <button type="button" class="ghost" onclick="Tri.undo()" title="undo the last filing (Ctrl/Cmd+Z)">↶ Undo</button>
+    </div>
+    <div id="tri-msg" class="tri-msg"></div>
+    <div class="tri-keys"><kbd>1</kbd>–<kbd>9</kbd> file · <kbd>Enter</kbd> file highlighted · <kbd>↑</kbd><kbd>↓</kbd> highlight · <kbd>←</kbd><kbd>→</kbd> browse · type to search or create · <kbd>Shift</kbd>+<kbd>Enter</kbd> add as example · <kbd>Ctrl/⌘</kbd>+<kbd>Z</kbd> undo · <kbd>Esc</kbd> close</div>
+  </div>
+</dialog>
+<script>
+const Tri = (() => {
+  const $ = (id) => document.getElementById(id);
+  let st = null;              // {key, title, items, categories, video_categories, examples}
+  let i = 0, sel = 0, filed = 0, undoStack = [], busy = false;
+
+  const item = () => st && st.items[i];
+  const cats = () => (item() && item().video && st.video_categories.length) ? st.video_categories : st.categories;
+  const say = (html, err) => { $('tri-msg').innerHTML = html; $('tri-msg').className = 'tri-msg' + (err ? ' err' : ''); };
+
+  async function post(url, data) {
+    const body = new URLSearchParams(data);
+    const r = await fetch(url, { method: 'POST', body, headers: { 'Content-Type': 'application/x-www-form-urlencoded' } });
+    let j = {}; try { j = await r.json(); } catch (e) {}
+    if (!r.ok) throw new Error(j.detail || r.statusText);
+    return j;
+  }
+
+  // visible tags for the current filter: [{key, leaf, path, n, score, isNew}]
+  function visible() {
+    const q = $('tri-q').value.trim().toLowerCase();
+    const it = item(); const sc = (it && it.scores) || {};
+    let list = cats().map((c, idx) => ({ ...c, n: idx < 9 ? idx + 1 : null, score: sc[c.key] }));
+    if (q) list = list.filter(c => c.key.toLowerCase().includes(q));
+    if (q && !cats().some(c => c.leaf.toLowerCase() === q)) list.push({ key: '__new__', leaf: $('tri-q').value.trim(), isNew: true });
+    return list;
+  }
+
+  function draw() {
+    const it = item();
+    $('tri-title').textContent = st.title;
+    $('tri-done').hidden = !!it;
+    $('tri-img').hidden = !it;
+    if (!it) {
+      $('tri-pos').textContent = '';
+      $('tri-done').innerHTML = `<div><b>All done here.</b><br>${filed} image${filed === 1 ? '' : 's'} filed.</div><button type="button" class="primary" onclick="Tri.close()">Close</button>`;
+      $('tri-tags').innerHTML = ''; $('tri-name').textContent = ''; $('tri-why').textContent = '';
+      $('tri-prog').style.width = '100%';
+      return;
+    }
+    $('tri-pos').textContent = `${i + 1} of ${st.items.length}`;
+    $('tri-prog').style.width = `${100 * (filed / Math.max(1, filed + st.items.length))}%`;
+    const img = $('tri-img'); img.classList.remove('toss'); img.src = it.view; img.classList.remove('enter'); void img.offsetWidth; img.classList.add('enter');
+    $('tri-name').textContent = it.name;
+    $('tri-why').textContent = it.why || '';
+    $('tri-ex').hidden = !st.examples;
+    const next = st.items[i + 1]; if (next) (new Image()).src = next.view;     // preload
+    drawTags();
+  }
+
+  function drawTags() {
+    const list = visible();
+    const it = item();
+    if (sel >= list.length) sel = Math.max(0, list.length - 1);
+    $('tri-tags').innerHTML = list.map((c, k) => `
+      <button type="button" class="tri-tag ${k === sel ? 'sel' : ''} ${c.key === (it && it.guess) ? 'guess' : ''} ${c.isNew ? 'new' : ''}" data-k="${k}">
+        ${c.isNew ? '<span class="n">＋</span>' : (c.n ? `<span class="n">${c.n}</span>` : '<span class="n">·</span>')}
+        <span class="l">${c.isNew ? `Create “${esc(c.leaf)}”` : esc(c.leaf)}</span>
+        ${c.path ? `<small>${esc(c.path)}</small>` : ''}
+        ${c.score !== undefined ? `<em>${Math.round(100 * c.score)}%</em>` : ''}
+        ${c.key === (it && it.guess) ? '<i title="the model’s suggestion">★</i>' : ''}
+      </button>`).join('');
+  }
+
+  const esc = (t) => String(t).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+
+  function resetSel() {
+    const list = visible(); const it = item();
+    const g = list.findIndex(c => it && c.key === it.guess);
+    sel = $('tri-q').value.trim() ? 0 : Math.max(0, g);
+  }
+
+  async function file(c) {
+    const it = item(); if (!it || !c || busy) return;
+    busy = true;
+    const tag = $('tri-tags').querySelector(`[data-k="${visible().indexOf(c)}"]`); if (tag) tag.classList.add('hit');
+    try {
+      const data = { item_id: it.id, category: c.key, fmt: 'json' };
+      if (c.isNew) data.new_category = c.leaf;
+      const j = await post('/file', data);
+      $('tri-img').classList.add('toss');
+      await new Promise(r => setTimeout(r, 260));
+      undoStack.push({ rec: j.rec, item: it, at: i });
+      st.items.splice(i, 1); filed += 1;
+      if (i >= st.items.length) i = Math.max(0, st.items.length - 1);
+      if (j.created) await reloadCategories();
+      $('tri-q').value = '';
+      say(j.rec ? `✓ <b>${esc(it.name)}</b> → ${esc(j.category.split(' › ').pop())} as <b>${esc(j.rec.new_name)}</b>${j.created ? ' (new category)' : ''}` : 'kept in place');
+      resetSel(); draw();
+    } catch (e) { say('✕ ' + esc(e.message), true); }
+    busy = false;
+  }
+
+  async function teach() {
+    const it = item(); const c = visible()[sel]; if (!it || !c || busy) return;
+    busy = true;
+    try {
+      const data = { item_id: it.id, category: c.key, fmt: 'json' };
+      if (c.isNew) data.new_category = c.leaf;
+      const j = await post('/examples/teach', data);
+      if (c.isNew) await reloadCategories();
+      say(j.status === 'duplicate' ? `${esc(it.name)} already is an example of ${esc(j.category.split(' › ').pop())}`
+                                   : `✓ ${esc(it.name)} is now an example of <b>${esc(j.category.split(' › ').pop())}</b> (it stays here)`);
+    } catch (e) { say('✕ ' + esc(e.message), true); }
+    busy = false;
+  }
+
+  async function undo() {
+    const last = undoStack.pop(); if (!last || !last.rec || busy) { if (!last) say('nothing to undo'); return; }
+    busy = true;
+    try {
+      await post('/undo', { id: last.rec.id, fmt: 'json' });
+      st.items.splice(Math.min(last.at, st.items.length), 0, last.item); i = Math.min(last.at, st.items.length - 1); filed -= 1;
+      say(`↶ ${esc(last.item.name)} is back`); resetSel(); draw();
+    } catch (e) { say('✕ ' + esc(e.message), true); }
+    busy = false;
+  }
+
+  async function reloadCategories() {
+    const r = await fetch(`/triage?key=${encodeURIComponent(st.key)}`); const j = await r.json();
+    st.categories = j.categories; st.video_categories = j.video_categories;
+  }
+
+  async function open(key, startId) {
+    const r = await fetch(`/triage?key=${encodeURIComponent(key)}`);
+    if (!r.ok) { return; }
+    st = await r.json(); filed = 0; undoStack = [];
+    i = Math.max(0, st.items.findIndex(x => x.id === startId));
+    $('tri-q').value = ''; say(''); resetSel(); draw();
+    $('tri').showModal(); $('tri-q').focus();
+  }
+
+  function close() {
+    $('tri').close();
+    if (filed || undoStack.length) { htmx.trigger(document.body, 'board-changed'); htmx.trigger(document.body, 'detail-changed'); }
+  }
+
+  function go(d) {
+    if (!st || !st.items.length) return;
+    i = (i + d + st.items.length) % st.items.length; $('tri-q').value = ''; resetSel(); draw(); $('tri-q').focus();
+  }
+
+  // keyboard: digits/Enter/arrows act; everything else types into the search box
+  document.addEventListener('keydown', (e) => {
+    if (!$('tri').open) return;
+    const q = $('tri-q');
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); return undo(); }
+    if (e.key === 'Escape') { e.preventDefault(); if (q.value) { q.value = ''; resetSel(); drawTags(); } else close(); return; }
+    if (e.key === 'ArrowLeft' && !q.value) { e.preventDefault(); return go(-1); }
+    if (e.key === 'ArrowRight' && !q.value) { e.preventDefault(); return go(1); }
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); const n = visible().length; sel = (sel + (e.key === 'ArrowDown' ? 1 : -1) + n) % Math.max(1, n); return drawTags(); }
+    if (e.key === 'Enter') { e.preventDefault(); return e.shiftKey ? teach() : file(visible()[sel]); }
+    if (/^[1-9]$/.test(e.key) && !q.value) { e.preventDefault(); const c = cats()[Number(e.key) - 1]; if (c) file({ ...c }); return; }
+    if (document.activeElement !== q && e.key.length === 1 && !e.metaKey && !e.ctrlKey) q.focus();
+  });
+  document.addEventListener('input', (e) => { if (e.target.id === 'tri-q') { resetSel(); drawTags(); } });
+  document.addEventListener('click', (e) => {
+    const t = e.target.closest('.tri-tag'); if (t && $('tri').open) { file(visible()[Number(t.dataset.k)]); return; }
+    const o = e.target.closest('[data-triage]'); if (o) { e.preventDefault(); open(o.dataset.triage, o.dataset.id || ''); }
+  });
+
+  return { open, close, go, file, fileSel: () => file(visible()[sel]), teach, undo };
+})();
+</script>

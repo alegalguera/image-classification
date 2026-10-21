@@ -1,0 +1,97 @@
+{% set sorted_piles = piles|rejectattr('kind', 'equalto', 'filed')|list %}
+{% set filed_pile = piles|selectattr('kind', 'equalto', 'filed')|first %}
+<div id="board" hx-get="/board" hx-trigger="board-changed from:body, examples-changed from:body, categories-changed from:body" hx-swap="outerHTML">
+
+{% if s.last_run %}{% set r = s.last_run %}
+  {% if r.error %}<div class="banner err"><b>Sorting stopped.</b> {{ r.error }}</div>
+  {% elif r.paused %}<div class="banner"><b>Paused</b><span class="mono">{{ r.done }} of {{ r.total }} sorted</span><span class="muted">The rest are still in the inbox pile. Press Sort to continue.</span></div>
+  {% elif sorted_piles %}<div class="banner ok"><b>✓ Sorted {{ r.done }} image{{ 's' if r.done != 1 }}</b><span class="mono">in {{ '%.1f'|format(r.secs) }}s{% if r.load %} (+{{ '%.1f'|format(r.load) }}s loading the model){% endif %}</span><span>{{ r.labeled }} labeled · {{ r.review }} need{{ 's' if r.review == 1 }} your decision</span></div>{% endif %}
+  {% if r.usage %}{% set rep = r.usage %}{% set u = rep.u %}
+  <details class="used"><summary><b>What it used:</b> <span class="mono">{{ rep.models[0].info.model if rep.models }} · {{ u.images_embedded }} computed{% if u.cache_hits %} + {{ u.cache_hits }} cached{% endif %}{% if u.input_tokens %} · {{ (u.input_tokens + u.output_tokens)|num }} tokens{% else %} · {{ (u.image_tokens + u.text_tokens)|num }} tokens{% endif %}{% if u.flops %} · ≈{{ u.flops|num }}FLOP{% endif %} · {{ '%.1f'|format(rep.cpu) }}s CPU · {{ rep.cost|usd }}</span> <span class="muted">details</span></summary>
+    {% include "_receipt.html" %}</details>{% endif %}
+{% endif %}
+
+{% if s.stale and (c.labeled or c.review) %}
+<div class="banner"><b>Your {{ 'categories' if s.stale == 'categories' else 'examples' }} changed.</b>
+  <span>The suggestions below were made before that. Re-sort to use the new {{ 'list' if s.stale == 'categories' else 'examples' }}; images seen before take a fraction of a second.</span>
+  <form method="post" action="/classify"><input type="hidden" name="redo" value="1"><button class="sm primary">↻ Re-sort all</button></form></div>
+{% endif %}
+
+{% if not cfg.categories %}
+<div class="banner err"><b>No categories yet.</b> <span>Sorting needs a list to choose from.</span> <a class="btn sm" href="/categories">Add categories</a></div>
+{% endif %}
+
+{% if c.unsorted %}
+<section class="hero">
+  {% with key='unsorted', ids=unsorted_ids, count=c.unsorted, size='big', title='Show all unsorted images' %}{% include "_pile.html" %}{% endwith %}
+  <div class="text">
+    <div class="eyebrow">Waiting in {{ inbox.name }}</div>
+    <h1>{{ c.unsorted }} unsorted image{{ 's' if c.unsorted != 1 }}</h1>
+    <p class="sub">Click the pile to look through them. Sorting looks at each image and suggests a category from your list. Nothing is moved until you file.</p>
+    <div class="facts">
+      <span>⏱ <b>≈ {{ s.estimate|secs }}</b></span>
+      {% if not s.model_loaded and plan.local %}<span>+ <b>~6s</b> to load the model the first time</span>{% endif %}
+      <span><b>{{ cfg.categories|length }}</b> categor{{ 'y' if cfg.categories|length == 1 else 'ies' }}</span>
+      <span>{% if est_cost is none %}cost: <b>price not set</b>{% elif plan.local %}<b>$0</b> API cost{% else %}≈ <b>{{ est_cost|usd }}</b>{% endif %}</span>
+    </div>
+    <div class="modelline"><span class="rc-chip {{ 'local' if plan.local else 'cloud' }}">{{ 'LOCAL' if plan.local else 'CLOUD' }}</span>
+      <b>{{ plan.model }}</b>{% if loaded_info and loaded_info.version %} <code>@{{ loaded_info.version }}</code>{% endif %}
+      <span class="muted">· {{ plan.provider }} · {{ loaded_info.where if loaded_info else plan.where }}</span></div>
+    <div class="row">
+      <form method="post" action="/classify"><button class="go big" {{ 'disabled' if not cfg.categories }}>▶ Sort {{ c.unsorted }} image{{ 's' if c.unsorted != 1 }}</button></form>
+      <form method="post" action="/scan"><button class="ghost">↻ Rescan</button></form>
+    </div>
+  </div>
+</section>
+{% endif %}
+
+{% if sorted_piles or (filed_pile and c.unsorted) %}
+<section>
+  <div class="section-head">
+    <h2>{{ 'Sorted' if sorted_piles else 'Filed' }}</h2>
+    {% if sorted_piles %}<span class="muted">{{ c.labeled }} ready to file{% if c.review %} · {{ c.review }} need{{ 's' if c.review == 1 }} your decision{% endif %}. Click a pile to check it.</span>{% endif %}
+    <span class="sp"></span>
+    {% if c.labeled %}<button class="primary" hx-post="/file-all" hx-target="#toast" hx-swap="innerHTML"
+      hx-confirm="Move all {{ c.labeled }} labeled image(s) into their category folders?">File all {{ c.labeled }} labeled →</button>{% endif %}
+  </div>
+  <div class="piles">
+    {% for p in piles %}
+    <div class="pilecard {{ p.kind }}" data-pile="{{ p.key }}">
+      {% with key=p.key, ids=p.ids, count=p.count %}{% include "_pile.html" %}{% endwith %}
+      <div class="pc-name">{{ p.label }}</div>
+      <div class="pc-path">{% if p.kind == 'review' %}pick a category for each{% elif p.kind == 'filed' %}this session · undo anytime{% else %}{{ p.path }}{% endif %}</div>
+      <div class="pc-acts">
+        {% if p.kind == 'cat' %}<button class="sm primary" hx-post="/file-all" hx-vals='{{ {"cat": p.key}|tojson }}' hx-target="#toast" hx-swap="innerHTML">File {{ p.count }} →</button>
+        {% elif p.kind == 'review' %}<button class="sm go" data-triage="review" title="one by one, with keyboard shortcuts">▶ Decide</button>
+        {% else %}<button class="sm ghost" hx-get="/pile?key=filed" hx-target="#detail" hx-swap="outerHTML show:#detail:top">See / undo</button>{% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+{% if not c.unsorted and not sorted_piles %}
+<section class="guide">
+  <div class="sprite-tray"><i class="fish"></i></div>
+  <div class="text">
+    <div class="eyebrow">{{ 'All done' if c.filed else 'Inbox' }}</div>
+    <h1>{% if c.filed %}Everything is filed.{% else %}The inbox is empty.{% endif %}</h1>
+    <p class="sub">{% if c.filed %}{{ c.filed }} image{{ 's' if c.filed != 1 }} filed this session. <a href="#" hx-get="/pile?key=filed" hx-target="#detail" hx-swap="outerHTML show:#detail:top">See them</a> or check <a href="/history">History</a> to undo.{% else %}Nothing is waiting to be sorted. Here is how to start:{% endif %}</p>
+    <ol class="howto">
+      <li class="{{ 'ok' if cfg.categories }}"><div><b>Categories</b>
+        {% if cfg.categories %}{{ cfg.categories|length }} ready: {{ (cfg.categories|list)[:5]|map('leaf')|join(', ') }}{{ '…' if cfg.categories|length > 5 }} · <a href="/categories">edit</a>
+        {% else %}Add a few words to choose from, like Coral, Sponge, Diver, People. <a href="/categories">Add categories</a>{% endif %}</div></li>
+      <li><div><b>Put photos in the {{ inbox.name }} folder</b>
+        {% if inbox.path %}<code>{{ inbox.path }}</code> <button class="sm" data-copy="{{ inbox.path }}">Copy path</button>{% endif %}
+        {% if inbox.url %}<a class="btn sm" href="{{ inbox.url }}" target="_blank">Open in Google Drive</a>{% endif %}
+        {% if not inbox.exists %}<div class="hint">That folder does not exist yet. <form method="post" action="/create-inbox" style="display:inline"><button class="sm">Create it</button></form></div>{% endif %}
+        <div class="hint">JPG, PNG, HEIC, AVIF, WebP and videos. Subfolders are not read.</div></div></li>
+      <li><div><b>Rescan, then press Sort</b>
+        <form method="post" action="/scan" style="margin-top:6px"><button class="primary">↻ Rescan inbox</button></form></div></li>
+    </ol>
+    {% if inbox.skipped %}<p class="hint">{{ inbox.skipped|length }} file{{ 's' if inbox.skipped|length != 1 }} in the inbox {{ 'are' if inbox.skipped|length != 1 else 'is' }} not a photo or video and {{ 'were' if inbox.skipped|length != 1 else 'was' }} skipped: {{ inbox.skipped[:5]|join(', ') }}{{ ' …' if inbox.skipped|length > 5 }}</p>{% endif %}
+  </div>
+</section>
+{% endif %}
+</div>

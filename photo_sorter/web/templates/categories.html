@@ -1,0 +1,26 @@
+{% extends "base.html" %}{% block content %}
+<div class="cats-page">
+  <div class="eyebrow">Categories</div>
+  <h1>What to sort into</h1>
+  <p class="sub">Photos are filed into the <b>last level</b> of each branch. Click any name or description to edit it; it saves when you press Enter or click away.</p>
+  {% if not t %}
+  <div class="banner err">Categories are written inline in the JSON config. Point <code>categories_file</code> at a Markdown file to edit them here.</div>
+  {% else %}{% include "_tree.html" %}{% endif %}
+</div>
+<script>
+  // [+] opens the inline "new sub-category" field under that category; Escape closes it
+  function addUnder(btn) {
+    const li = btn.closest('li.node'); const f = li.querySelector(':scope > .adder');
+    document.querySelectorAll('.adder.sub').forEach(a => { if (a !== f) a.hidden = true; });
+    f.hidden = false; f.querySelector('input[name=name]').focus();
+  }
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && e.target.closest('.adder.sub')) { e.target.closest('.adder').hidden = true; }
+  });
+  // keep keyboard focus on the "add" field after adding, so you can type several in a row
+  document.body.addEventListener('htmx:afterSwap', (e) => {
+    const again = document.querySelector('[data-refocus]');
+    if (again) { const a = again.closest('.adder'); if (a) a.hidden = false; again.focus(); }
+  });
+</script>
+{% endblock %}

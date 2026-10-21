@@ -1,0 +1,21 @@
+# Secondary target: any VPS with Docker. Uses the local SigLIP model (no Vertex, no per-image cost).
+# docker compose -f deploy/docker-compose.yml up -d --build ; put Caddy/nginx with TLS in front.
+services:
+  photo-sorter:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+      args: { EXTRAS: researcher }
+    ports: ["8080:8080"]
+    environment:
+      PHOTO_SORTER_PROVIDER: siglip
+      PHOTO_SORTER_BASE_URL: ${PHOTO_SORTER_BASE_URL:-http://localhost:8080}
+      PHOTO_SORTER_SECRET: ${PHOTO_SORTER_SECRET:?set a long random string}
+      GOOGLE_OAUTH_CLIENT_JSON: /secrets/web_client.json
+    volumes:
+      - ./web_client.json:/secrets/web_client.json:ro
+      - hf-cache:/data/hf          # model weights (~1.5 GB) downloaded on first start
+    deploy: { resources: { limits: { memory: 4g } } }
+    restart: unless-stopped
+volumes:
+  hf-cache: {}

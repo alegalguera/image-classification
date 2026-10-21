@@ -1,0 +1,8 @@
+{% extends "base.html" %}{% block content %}
+{% if s.running %}
+  {% include "_status.html" %}
+{% else %}
+  {% include "_board.html" %}
+  {% include "_detail.html" %}
+{% endif %}
+{% endblock %}

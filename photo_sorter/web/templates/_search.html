@@ -1,0 +1,11 @@
+{% if page == 1 %}{% if err %}<div class="terr">✕ {{ err }}</div>{% elif not results %}<div class="muted">No images found. Try other words.</div>{% endif %}<div class="hits">{% endif %}
+{% for r in results %}
+  <div class="hit">
+    <img src="{{ r.thumb }}" alt="" loading="lazy" data-zoom="{{ r.thumb }}" data-name="{{ r.title }} · {{ r.license }} · {{ r.creator }}">
+    <div class="hit-meta" title="{{ r.title }}">{{ r.title }}<small>{{ r.license }}{% if r.creator %} · {{ r.creator }}{% endif %}</small></div>
+    <button type="button" class="sm" hx-post="/examples/fetch" hx-vals='{{ dict(cat=cat, id=r.id, title=r.title, url=r.url, thumb=r.thumb, license=r.license, creator=r.creator, landing=r.landing, provider=r.provider)|tojson }}'
+      hx-target="closest .hit" hx-swap="outerHTML">＋ Add</button>
+  </div>
+{% endfor %}
+{% if results|length >= 20 %}<button type="button" class="sm more-hits" hx-get="/examples/search?cat={{ cat|urlencode }}&q={{ q|urlencode }}&page={{ page + 1 }}" hx-target="this" hx-swap="outerHTML">More results</button>{% endif %}
+{% if page == 1 %}</div>{% endif %}

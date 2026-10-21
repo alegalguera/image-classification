@@ -1,0 +1,38 @@
+{% set loading = s.phase == 'loading' %}
+<section id="status" class="status" hx-get="/status?was=1" hx-trigger="every 1s" hx-swap="outerHTML">
+  <div class="steps">
+    <div class="step {{ 'active' if loading else 'done' }}"><span class="n">{{ '1' if loading else '✓' }}</span>{{ 'Loading the model' if loading else 'Model ready' }}{% if s.t_load %}<small>{{ '%.1f'|format(s.t_load) }}s</small>{% endif %}</div>
+    <i class="line {{ '' if loading else 'done' }}"></i>
+    <div class="step {{ '' if loading else 'active' }}"><span class="n">2</span>Looking at images<small>{{ s.done }}/{{ s.total }}</small></div>
+    <i class="line"></i>
+    <div class="step"><span class="n">3</span>Ready to file</div>
+  </div>
+  <div class="status-body">
+    <div>
+      <div class="scanner">
+        {% if loading or not s.current %}<div class="warm"><i class="fish"></i><span>{{ 'warming up…' if loading else 'starting…' }}</span></div>
+        {% else %}<img src="/thumb/{{ s.current.id }}" alt="" class="{{ 'fresh' if fresh_cur }}"><span class="beam"></span>{% endif %}
+        <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
+      </div>
+      <div class="cap">{% if loading %}First run in this session: loading {{ cfg.provider }} and your reference images. This happens once.{% elif s.current %}looking at <b>{{ s.current.name }}</b>{% endif %}</div>
+      {% if s.recent and not loading %}{% set last = s.recent[0] %}
+      <div class="last">previous: {{ last.item.name[:28] }} → {% if last.confident %}<b class="okc">{{ last.target|leaf }}</b> {{ '%.0f'|format(100 * last.verdict.confidence) }}%{% else %}<b class="revc">needs review</b>{% endif %}</div>{% endif %}
+    </div>
+    <div>
+      <div class="bignum">{{ s.done }}<small>/ {{ s.total }} images</small><span class="pct">{{ s.pct }}%</span></div>
+      <div class="pbar {{ 'indet' if loading }}"><i style="--from:{{ prev|default(s.pct) }}%; --to:{{ s.pct }}%"></i></div>
+      <div class="stats">
+        {% if loading %}<span>preparing…</span>
+        {% else %}<span><b>{{ '%.1f'|format(s.speed) }}</b> img/s</span><span>elapsed <b>{{ s.elapsed|secs }}</b></span><span>{% if s.eta is not none %}about <b>{{ s.eta|secs }}</b> left{% else %}estimating…{% endif %}</span>{% endif %}
+      </div>
+      {% if s.recent %}<div class="label">Just sorted</div>
+      <div class="stream">{% for p in s.recent %}<div class="sr {{ 'ok' if p.confident else 'low' }} {{ 'fresh' if loop.first and fresh_top }}" title="{{ p.item.name }}: {{ p.target }} ({{ '%.0f'|format(100 * p.verdict.confidence) }}%)"><img src="/thumb/{{ p.item.id }}" alt=""><span>{{ p.target|leaf if p.confident else 'review' }}</span></div>{% endfor %}</div>{% endif %}
+      <form method="post" action="/pause" style="margin-top:18px"><button class="sm">❚❚ Pause</button></form>
+    </div>
+    <div>
+      <div class="label" style="margin-top:0">Activity</div>
+      <ul class="timeline">{% for t, text in s.events|list %}{% if loop.index <= 8 %}<li><time>{{ t }}</time>{{ text }}</li>{% endif %}{% endfor %}</ul>
+    </div>
+  </div>
+  {% if rep %}<div class="label">Running on</div>{% include "_receipt.html" %}{% elif loading %}<div class="label">Running on</div><div class="receipt"><div class="rc-where">{{ cfg.provider }} · {{ cfg.model_name }} · loading…</div></div>{% endif %}
+</section>

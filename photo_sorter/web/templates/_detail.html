@@ -1,0 +1,21 @@
+{% if not detail or not detail.key %}<div id="detail" data-key=""></div>{% else %}
+{% set k = detail.key %}
+<div id="detail" class="detail" data-key="{{ k }}" hx-get="/pile?key={{ k|urlencode }}" hx-trigger="detail-changed from:body, categories-changed from:body" hx-swap="outerHTML">
+  <div class="detail-head">
+    <h2>{% if k == 'unsorted' %}Unsorted{% elif k == 'review' %}Needs review{% elif k == 'filed' %}Filed this session{% else %}{{ k|leaf }}{% endif %}</h2>
+    <span class="count">{{ detail.total }}</span>
+    {% if k not in ('unsorted', 'review', 'filed') %}<span class="muted">{{ k|parent }}</span>{% endif %}
+    <span class="sp"></span>
+    {% if k != 'filed' and detail.total %}<button class="go" data-triage="{{ k }}" title="big image, numbered categories, keyboard shortcuts">▶ One by one</button>{% endif %}
+    {% if k not in ('unsorted', 'review', 'filed') and detail.total %}<button class="primary" hx-post="/file-all" hx-vals='{{ {"cat": k}|tojson }}' hx-target="#toast" hx-swap="innerHTML">File all {{ detail.total }} into {{ k|leaf }} →</button>{% endif %}
+    {% if k == 'unsorted' and detail.total and cfg.categories %}<form method="post" action="/classify"><button class="go">▶ Sort {{ detail.total }}</button></form>{% endif %}
+    <button class="ghost" hx-get="/pile" hx-target="#detail" hx-swap="outerHTML">✕ Close</button>
+  </div>
+  <div class="tip">{% if k == 'unsorted' %}Not sorted yet. Click a thumbnail to see it larger.
+    {% elif k == 'review' %}The model was not sure about these. Fastest: <b>▶ One by one</b> (or click a thumbnail) and press the number of a category. Here: click a suggestion, or pick any category on the right; it files right away and Undo is one click.
+    {% elif k == 'filed' %}Moved during this session. Undo puts an image back in the inbox with its original name.
+    {% else %}The model thinks these are <b>{{ k|leaf }}</b>. ✓ files one; a wrong one: pick its category on the right, it files right away.{% endif %}</div>
+  {% if not detail.total %}<p class="muted" style="padding:18px">Nothing left here.</p>{% endif %}
+  <table class="rows">{% include "_rows.html" %}</table>
+</div>
+{% endif %}

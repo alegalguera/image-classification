@@ -1,0 +1,28 @@
+{# What a run used. Expects `rep` from metering.RunMeter.report(). #}
+<div class="receipt">
+  {% for m in rep.models %}{% set i = m.info %}{% set u = m.u %}
+  <div class="rc-model">
+    <div class="rc-name"><span class="rc-chip {{ 'local' if i.local else 'cloud' }}">{{ 'LOCAL' if i.local else 'CLOUD' }}</span>
+      <b>{{ i.model }}</b>{% if i.version %} <code title="exact revision / version">@{{ i.version }}</code>{% endif %}
+      <span class="muted">· {{ i.provider }}</span></div>
+    <div class="rc-where">where: {{ i.where }}</div>
+    {% if i.params %}<div class="rc-spec">{{ i.params|num }} parameters ({{ i.params_used|num }} run per image) · {{ i.dtype }} · {{ i.memory|gb }} in memory · {{ i.image_tokens }} patches per image · {{ i.dim }}-d vectors · {{ i.runtime }}</div>{% endif %}
+    {% if i.weights %}<div class="rc-spec">weights: <code style="font-size:14px">{{ i.weights }}</code>{% if i.disk %} · {{ i.disk|gb }} on disk{% endif %} · from {{ i.source }}</div>{% endif %}
+    {% if i.effort %}<div class="rc-spec">effort {{ i.effort }}</div>{% endif %}
+  </div>
+  <div class="rc-grid">
+    <div><span>images</span><b>{{ u.images_embedded }}</b><small>computed{% if u.cache_hits %} · {{ u.cache_hits }} from cache{% endif %}</small></div>
+    {% if u.input_tokens or u.output_tokens %}
+    <div><span>tokens</span><b>{{ u.input_tokens|num }} / {{ u.output_tokens|num }}</b><small>input / output · {{ u.api_calls }} API call{{ 's' if u.api_calls != 1 }}</small></div>
+    {% elif u.api_images or u.api_text_chars %}
+    <div><span>billed</span><b>{{ u.api_images }} img</b><small>{{ u.api_text_chars|num }} text chars · {{ u.api_calls }} API calls</small></div>
+    {% else %}
+    <div><span>tokens</span><b>{{ (u.image_tokens + u.text_tokens)|num }}</b><small>{{ u.image_tokens|num }} image patches · {{ u.text_tokens|num }} text</small></div>
+    {% endif %}
+    <div><span>model time</span><b>{{ '%.1f'|format(u.model_secs) }}s</b><small>{% if u.images_embedded %}{{ '%.0f'|format(1000 * u.model_secs / u.images_embedded) }} ms per image{% else %}text only{% endif %}</small></div>
+    {% if u.flops %}<div><span>compute</span><b>≈{{ u.flops|num }}FLOP</b><small>estimated forward-pass work</small></div>{% endif %}
+    <div class="{{ 'free' if m.cost == 0 }}"><span>cost</span><b>{{ m.cost|usd }}</b><small>{% if i.local %}no API charge, runs on your machine{% elif m.cost is none %}add a price in config "pricing"{% else %}estimate from list prices{% endif %}</small></div>
+  </div>
+  {% endfor %}
+  <div class="rc-foot">this run: {{ '%.1f'|format(rep.wall) }}s wall · {{ '%.1f'|format(rep.cpu) }}s CPU{% if rep.wall > 0 %} ({{ '%.0f'|format(100 * rep.cpu / rep.wall) }}% of one core avg){% endif %} · peak memory {{ rep.peak_rss|gb }} · {{ rep.machine }}</div>
+</div>

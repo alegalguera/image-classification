@@ -1,0 +1,10 @@
+<div class="toast">
+  {% if moved %}<span>✓ Moved to <b>{{ cat|leaf }}</b> as <b>{{ moved.new_name }}</b>.</span>
+  <button class="sm" hx-post="/undo" hx-vals='{{ {"id": [moved.id]}|tojson }}'>↶ Undo</button>
+  {% elif taught and dupe %}<span><b>{{ taught }}</b> already is an example of <b>{{ cat|leaf }}</b>.</span>
+  {% elif taught %}<span>✓ <b>{{ taught }}</b> is now an example of <b>{{ cat|leaf }}</b>.</span>
+  <button class="sm" hx-post="/classify" hx-vals='{"redo": "1"}'>↻ Re-sort all</button>
+  {% elif recs %}<span>✓ Filed {{ recs|length }} image{{ 's' if recs|length != 1 }}{% if cat %} into <b>{{ cat|leaf }}</b>{% endif %}.</span>
+  <button class="sm" hx-post="/undo" hx-vals='{{ {"id": recs|map(attribute="id")|list}|tojson }}'>↶ Undo</button>
+  {% else %}<span>Nothing to file.</span>{% endif %}
+</div>

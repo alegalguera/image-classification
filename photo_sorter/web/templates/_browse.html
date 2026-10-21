@@ -1,0 +1,15 @@
+<div id="browse">
+  <div class="chips">{% for label, path in b.shortcuts %}<button type="button" class="chip" hx-get="/setup/browse" hx-vals='{{ {"path": path}|tojson }}' hx-target="#browse" hx-swap="outerHTML">{{ label }}</button>{% endfor %}</div>
+  <div class="browser">
+    <div class="here">📂 {{ b.path }}</div>
+    {% if b.parent %}<a href="#" hx-get="/setup/browse" hx-vals='{{ {"path": b.parent}|tojson }}' hx-target="#browse" hx-swap="outerHTML">⬑ up one level</a>{% endif %}
+    {% for d in b.dirs %}<a href="#" hx-get="/setup/browse" hx-vals='{{ {"path": b.path ~ "/" ~ d}|tojson }}' hx-target="#browse" hx-swap="outerHTML">📁 {{ d }}</a>{% endfor %}
+    {% if b.more %}<a class="muted">… and {{ b.more }} more</a>{% endif %}
+    {% if b.err %}<div class="hint" style="padding:6px 10px">{{ b.err }}</div>{% endif %}
+  </div>
+  <input type="hidden" name="path" value="{{ b.path }}">
+  <div class="row">
+    <button class="primary" name="kind" value="local">Use this folder</button>
+    <span class="hint" style="margin:0">{{ b.photos }} photo{{ 's' if b.photos != 1 }} directly in it{% if b.dirs %} · {{ b.dirs|length }} subfolder{{ 's' if b.dirs|length != 1 }}{% endif %}</span>
+  </div>
+</div>

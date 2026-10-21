@@ -1,0 +1,548 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>photo-sorter Retrospective</title>
+<meta name="description" content="How photo-sorter evolved from a Claude Skill prototype to a local web app, where it stands, and what to do next.">
+<style>
+:root {
+  --bg: #f6f3ec;
+  --surface: #ffffff;
+  --surface-2: #eef4f3;
+  --ink: #17272b;
+  --muted: #5a6b6f;
+  --line: #d6dedd;
+  --teal: #0f7b78;
+  --teal-soft: #d8efed;
+  --sand: #a8740c;
+  --sand-soft: #f7ebcf;
+  --coral: #c2463a;
+  --coral-soft: #f9dfdb;
+  --kelp: #2f7d32;
+  --kelp-soft: #dff0dc;
+  --violet: #5b4fb3;
+  --violet-soft: #e6e3f7;
+  --shadow: 0 1px 2px rgba(15, 40, 45, .06), 0 4px 14px rgba(15, 40, 45, .06);
+  --radius: 10px;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0d1a1d;
+    --surface: #132428;
+    --surface-2: #172d32;
+    --ink: #e4eeed;
+    --muted: #9db1b3;
+    --line: #264146;
+    --teal: #4cc3bd;
+    --teal-soft: #173d3e;
+    --sand: #e3b453;
+    --sand-soft: #3a3020;
+    --coral: #f08a7e;
+    --coral-soft: #43241f;
+    --kelp: #7fcf82;
+    --kelp-soft: #1e3a22;
+    --violet: #a99cf5;
+    --violet-soft: #2a2647;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 4px 14px rgba(0, 0, 0, .25);
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0d1a1d;
+  --surface: #132428;
+  --surface-2: #172d32;
+  --ink: #e4eeed;
+  --muted: #9db1b3;
+  --line: #264146;
+  --teal: #4cc3bd;
+  --teal-soft: #173d3e;
+  --sand: #e3b453;
+  --sand-soft: #3a3020;
+  --coral: #f08a7e;
+  --coral-soft: #43241f;
+  --kelp: #7fcf82;
+  --kelp-soft: #1e3a22;
+  --violet: #a99cf5;
+  --violet-soft: #2a2647;
+  --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 4px 14px rgba(0, 0, 0, .25);
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 16px/1.55 var(--sans);
+}
+.wrap { max-width: 1040px; margin: 0 auto; padding: 0 16px 64px; }
+a { color: var(--teal); }
+h1, h2, h3 { line-height: 1.2; margin: 0; }
+h2 { font-size: 1.45rem; margin: 48px 0 6px; }
+h2 + .lede { margin-top: 0; }
+.lede { color: var(--muted); margin: 6px 0 18px; max-width: 70ch; }
+code { font: .88em var(--mono); background: var(--surface-2); padding: 1px 5px; border-radius: 4px; }
+
+/* header */
+header.top { padding: 40px 0 8px; }
+.eyebrow { font: 600 .78rem/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--teal); }
+header.top h1 { font-size: clamp(1.7rem, 4.5vw, 2.5rem); margin: 10px 0 10px; }
+header.top p { margin: 0; color: var(--muted); max-width: 72ch; }
+
+/* phase strip */
+.strip { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin: 26px 0 8px; }
+.strip div { padding: 10px 12px; border-radius: 8px; font-size: .85rem; line-height: 1.3; }
+.strip b { display: block; font-size: .95rem; }
+.strip .past { background: var(--teal-soft); }
+.strip .present { background: var(--sand-soft); }
+.strip .future { background: var(--surface); border: 1.5px dashed var(--coral); }
+@media (max-width: 700px) { .strip { grid-template-columns: 1fr 1fr; } .strip div:last-child { grid-column: span 2; } }
+
+/* legend + chips */
+.legend { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 0; }
+.chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  font: 600 .74rem/1 var(--mono); padding: 5px 8px; border-radius: 999px; white-space: nowrap;
+}
+.ok { background: var(--kelp-soft); color: var(--kelp); }
+.fake { background: var(--violet-soft); color: var(--violet); }
+.unrun { background: var(--sand-soft); color: var(--sand); }
+.bad { background: var(--coral-soft); color: var(--coral); }
+.part { background: var(--teal-soft); color: var(--teal); }
+
+/* evidence */
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow); }
+.card h3 { font-size: 1rem; margin-bottom: 8px; }
+.card ul { margin: 0; padding-left: 18px; }
+.card li { margin: 3px 0; }
+.card.gap { border-left: 4px solid var(--sand); }
+.card.src { border-left: 4px solid var(--teal); }
+
+/* timeline */
+.timeline { position: relative; margin: 8px 0 0; padding-left: 30px; }
+.timeline::before {
+  content: ""; position: absolute; left: 9px; top: 6px; bottom: 6px; width: 3px; border-radius: 2px;
+  background: linear-gradient(var(--teal) 0 78%, var(--sand) 78% 90%, transparent 90%);
+}
+.stage { position: relative; margin: 0 0 14px; }
+.stage::before {
+  content: ""; position: absolute; left: -27px; top: 18px; width: 15px; height: 15px; border-radius: 50%;
+  background: var(--bg); border: 3px solid var(--teal);
+}
+.stage.now::before { border-color: var(--sand); background: var(--sand); }
+.stage details { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); }
+.stage summary { list-style: none; cursor: pointer; padding: 14px 16px; display: grid; gap: 4px; }
+.stage summary::-webkit-details-marker { display: none; }
+.stage summary:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; border-radius: var(--radius); }
+.when { font: 600 .78rem/1.2 var(--mono); color: var(--muted); }
+.stage h3 { font-size: 1.08rem; }
+.turn { color: var(--muted); font-size: .94rem; }
+.turn b { color: var(--ink); font-weight: 600; }
+.more { font: .78rem var(--mono); color: var(--teal); }
+details[open] .more { display: none; }
+.body { padding: 0 16px 16px; border-top: 1px solid var(--line); }
+.body h4 { margin: 14px 0 4px; font-size: .78rem; font: 600 .74rem/1 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.body ul { margin: 0; padding-left: 18px; }
+.body li { margin: 3px 0; }
+.read { margin-top: 12px; padding: 10px 12px; border-radius: 8px; background: var(--surface-2); font-size: .93rem; }
+.read b { color: var(--teal); }
+
+/* tables */
+.tbl { width: 100%; border-collapse: collapse; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); }
+.tbl th, .tbl td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; font-size: .94rem; }
+.tbl th { font: 600 .74rem/1.2 var(--mono); letter-spacing: .05em; text-transform: uppercase; color: var(--muted); background: var(--surface-2); }
+.tbl tr:last-child td { border-bottom: 0; }
+.tbl td small { color: var(--muted); }
+.scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+@media (max-width: 640px) {
+  .tbl.stack thead { display: none; }
+  .tbl.stack tr { display: block; border-bottom: 1px solid var(--line); padding: 8px 0; }
+  .tbl.stack td { display: block; border: 0; padding: 4px 12px; }
+}
+
+/* numbers */
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin: 0 0 16px; }
+.stat { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; box-shadow: var(--shadow); }
+.stat b { display: block; font-size: 1.5rem; line-height: 1.1; }
+.stat span { color: var(--muted); font-size: .85rem; }
+
+/* roadmap */
+.lanes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+@media (max-width: 860px) { .lanes { grid-template-columns: 1fr; } }
+.lane { background: var(--surface); border: 1.5px dashed var(--line); border-radius: var(--radius); padding: 14px; }
+.lane.now { border-color: var(--coral); }
+.lane h3 { font-size: 1.05rem; }
+.lane .sub { color: var(--muted); font-size: .85rem; margin: 2px 0 10px; }
+.item { padding: 10px 0; border-top: 1px solid var(--line); }
+.item:first-of-type { border-top: 0; }
+.item b { display: block; }
+.item p { margin: 2px 0 6px; color: var(--muted); font-size: .9rem; }
+.vue { display: flex; gap: 5px; flex-wrap: wrap; }
+.vue span { font: 600 .7rem/1 var(--mono); padding: 4px 6px; border-radius: 5px; background: var(--surface-2); color: var(--muted); }
+.vue .h { color: var(--ink); }
+.tag-new { font: 600 .68rem/1 var(--mono); padding: 3px 6px; border-radius: 5px; background: var(--violet-soft); color: var(--violet); margin-left: 4px; vertical-align: 1px; }
+.decide { margin-top: 14px; }
+
+/* lessons */
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 760px) { .two { grid-template-columns: 1fr; } }
+.card.help { border-top: 4px solid var(--kelp); }
+.card.hurt { border-top: 4px solid var(--coral); }
+.card.know { border-top: 4px solid var(--violet); }
+.card li b { font-weight: 600; }
+
+footer { margin-top: 48px; color: var(--muted); font-size: .88rem; border-top: 1px solid var(--line); padding-top: 16px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="top">
+  <div class="eyebrow">I.CARE photo-sorter · retrospective · Oct 3–9, 2026</div>
+  <h1>From a chat skill to a local photo-sorting app</h1>
+  <p>How the project evolved, where it stands today and what to do next. Built from the Claude Code transcripts, the plan files and the code on disk, because there is no git history. Times are US Eastern.</p>
+
+  <div class="strip" aria-label="Phases">
+    <div class="past"><b>Oct 3–4</b>Prototypes: Claude Skill, then CLI</div>
+    <div class="past"><b>Oct 9 a.m.</b>Model pivot, plan, v0.2 build</div>
+    <div class="past"><b>Oct 9 p.m.</b>UI, teaching, review, fixes</div>
+    <div class="present"><b>Now</b>Works locally; 21 bugs open</div>
+    <div class="future"><b>Next</b>Safe → installable → proven with a researcher → hosted</div>
+  </div>
+
+  <div class="legend" aria-label="Status legend">
+    <span class="chip ok">✓ verified</span>
+    <span class="chip fake">◇ fakes only</span>
+    <span class="chip unrun">△ written, never run</span>
+    <span class="chip bad">✕ broken / missing</span>
+    <span class="chip part">◐ partly done</span>
+  </div>
+</header>
+
+<h2>Evidence</h2>
+<p class="lede">What this guide is based on, and what it can't see.</p>
+<div class="cards">
+  <div class="card src">
+    <h3>Sources read</h3>
+    <ul>
+      <li>This project's session transcript: 30 owner messages, timestamps, tool calls and test results</li>
+      <li>Two plan files (Oct 3 Skill plan, Oct 9 v0.2 plan) and two memory notes</li>
+      <li>The sibling <code>reef_image_test</code> project: README, layout and the owner's messages</li>
+      <li>The current code, 60 tests, README and deploy scripts</li>
+    </ul>
+  </div>
+  <div class="card gap">
+    <h3>Gaps</h3>
+    <ul>
+      <li>No git: no commits, diffs, issues or PRs</li>
+      <li>No researcher has tried it</li>
+      <li>Accuracy is measured against Claude-assigned "silver" labels; only 9 images are human-checked</li>
+      <li>The owner's own testing time is not measured</li>
+      <li>The full code review text isn't available; only its finding titles</li>
+    </ul>
+  </div>
+</div>
+
+<h2>Past: how we got here</h2>
+<p class="lede">Seven stages. Open a stage for the reasoning, what failed and the evidence. "My read" marks interpretation rather than documented reasoning.</p>
+
+<div class="timeline">
+
+  <div class="stage">
+    <details>
+      <summary>
+        <span class="when">STAGE 0 · OCT 3–4 · sibling project</span>
+        <h3>A Claude Skill for a researcher on a free account</h3>
+        <span class="turn"><b>Turning point:</b> the free Claude sandbox can't reach iCloud or Hugging Face, so the tool split into a Skill plus Mac scripts.</span>
+        <span class="more">details ▾</span>
+      </summary>
+      <div class="body">
+        <h4>Goal</h4>
+        <ul><li>File about 2,000 I.CARE photos into existing iCloud albums, with keywords and captions.</li></ul>
+        <h4>Built</h4>
+        <ul><li>Skill ZIP, Mac export and apply scripts, share page, four evaluation iterations, and a classification of the real 84-photo album.</li></ul>
+        <h4>Outcome</h4>
+        <ul><li>A working proof of concept. Its taxonomy, silver labels and 9 gold images were reused later.</li></ul>
+        <div class="read"><b>Evidence:</b> <code>lets-plan-about-this-golden-donut.md</code>, <code>reef_image_test/README.md</code>.</div>
+      </div>
+    </details>
+  </div>
+
+  <div class="stage">
+    <details>
+      <summary>
+        <span class="when">STAGE 1 · OCT 4 · 12:07–13:54</span>
+        <h3>Config-driven CLI with a vision LLM</h3>
+        <span class="turn"><b>Turning point:</b> categories moved into <code>CATEGORIES.md</code> and the source became an iCloud shared-album link.</span>
+        <span class="more">details ▾</span>
+      </summary>
+      <div class="body">
+        <h4>Built</h4>
+        <ul>
+          <li>A shared-album client reverse-engineered from the CloudKit web API and tested live on 84 photos.</li>
+          <li>Claude (default) and Gemini classifiers, and three destinations: a local folder, iCloud Drive and Photos.</li>
+          <li>The workflow: <code>fetch → classify → CSV review → apply</code>.</li>
+        </ul>
+        <h4>Failed or deferred</h4>
+        <ul>
+          <li>No real model call (no API key). The Photos destination was only dry-run.</li>
+          <li>The first sign of the iCloud hidden-file problem, patched with a workaround.</li>
+        </ul>
+      </div>
+    </details>
+  </div>
+
+  <div class="stage">
+    <details>
+      <summary>
+        <span class="when">STAGE 2 · OCT 4 22:48 → OCT 9 09:48</span>
+        <h3>Choosing the model again</h3>
+        <span class="turn"><b>Turning point:</b> "not SigLIP, not yet" became "SigLIP 2 plus examples" once photos moved to Google Drive and the categories became general.</span>
+        <span class="more">details ▾</span>
+      </summary>
+      <div class="body">
+        <h4>Documented reasoning</h4>
+        <ul>
+          <li>For species codes and people's identities, an LLM is better; Roboflow needs thousands of labels.</li>
+          <li>For coral / sponge / diver / people, plus example folders and "improves over time", a local embedding model fits. "The requirements changed the problem."</li>
+        </ul>
+        <h4>Revised later</h4>
+        <ul>
+          <li>Drive for Desktop → Drive API sign-in.</li>
+          <li>Gradio → FastAPI + HTMX.</li>
+          <li>Copy → move and rename.</li>
+          <li>Filed photos teaching "off by default" → on.</li>
+          <li>Model size "400 MB" → 1.5 GB, corrected at the plan stage.</li>
+        </ul>
+      </div>
+    </details>
+  </div>
+
+  <div class="stage">
+    <details>
+      <summary>
+        <span class="when">STAGE 3 · OCT 9 · 09:53–10:37</span>
+        <h3>Plan, then the v0.2 build in about 24 minutes</h3>
+        <span class="turn"><b>Turning point:</b> one planned design: storage layer, embedders, move history, CLI, web UI and Google Cloud deploy.</span>
+        <span class="more">details ▾</span>
+      </summary>
+      <div class="body">
+        <h4>Process</h4>
+        <ul>
+          <li>Two research subagents, 7 web searches and 2 multiple-choice questions to the owner.</li>
+          <li>Requirements added mid-plan: the server option uses Google Drive only, and Google Cloud is preferred "to learn it".</li>
+        </ul>
+        <h4>Measured on 69 album photos (silver labels)</h4>
+        <ul>
+          <li>Top level (coral / sponge): 78% zero-shot → 95.7% with examples.</li>
+          <li>94% of filed photos were right at confidence 0.2, with 75% sent to Review.</li>
+        </ul>
+        <h4>Not verified</h4>
+        <ul><li>Drive, Vertex AI and Cloud Run. The summary called the cookie "encrypted"; the review found it is only signed.</li></ul>
+      </div>
+    </details>
+  </div>
+
+  <div class="stage">
+    <details>
+      <summary>
+        <span class="when">STAGE 4 · OCT 9 · 10:50–13:10</span>
+        <h3>Hands-on testing and UI churn</h3>
+        <span class="turn"><b>Turning point:</b> the owner's tests reshaped the UI about six times, and a turtle at "97% shark" led to an absolute fit check.</span>
+        <span class="more">details ▾</span>
+      </summary>
+      <div class="body">
+        <h4>Owner reports → responses</h4>
+        <ul>
+          <li>"Categories file too complex" → a simple list plus a categories editor.</li>
+          <li>"Why is it not working?" → the scanner skipped <code>.avif</code> files.</li>
+          <li>"No idea what's going on" → the page refreshes itself, and a live status panel.</li>
+          <li>"Terrible UI"; turtle as shark → list layout and the <code>min_fit</code> check.</li>
+          <li>"Still classifying on start" → the model loads only on Sort, behind a lock.</li>
+          <li>"UI should be simpler" → piles and an outliner. <b>First real-browser check.</b></li>
+          <li>Three environment errors → the root cause (iCloud-synced Desktop) fixed by moving the virtual environment.</li>
+        </ul>
+        <div class="read"><b>My read:</b> the owner asked for simplicity at 11:13. The early versions added features instead (pagination, filters, tabs), and nobody looked at the UI in a browser until the sixth version.</div>
+      </div>
+    </details>
+  </div>
+
+  <div class="stage">
+    <details>
+      <summary>
+        <span class="when">STAGE 5 · OCT 9 · 13:16–16:38</span>
+        <h3>Transparency and teaching by example</h3>
+        <span class="turn"><b>Turning point:</b> "training" became a visible workflow: examples panel, web search, "one picture teaches one category", and a one-by-one viewer.</span>
+        <span class="more">details ▾</span>
+      </summary>
+      <div class="body">
+        <h4>Built</h4>
+        <ul>
+          <li>Run receipts: model and revision, where it ran, tokens, FLOPs, CPU, memory and dollars.</li>
+          <li>Examples: upload, openly-licensed web search and "use as example". They are re-read on every Sort.</li>
+          <li>Move to… and Check this category; the viewer with number keys and undo.</li>
+        </ul>
+        <h4>Found and fixed while testing</h4>
+        <ul>
+          <li>Examples pulled 5 photos into Turtle (only 2 were turtles) → a cutoff calibrated per category.</li>
+          <li>A scoring formula bug → fixed; filed accuracy 93.8% → 94.1%.</li>
+        </ul>
+        <div class="read"><b>Open question (flagged 15:32):</b> auto-filed photos also teach, so a wrong automatic filing teaches the wrong thing. Not resolved.</div>
+      </div>
+    </details>
+  </div>
+
+  <div class="stage now">
+    <details>
+      <summary>
+        <span class="when">STAGE 6 · OCT 9 · 17:14–22:04</span>
+        <h3>Real taxonomy, code review and efficiency fixes</h3>
+        <span class="turn"><b>Turning point:</b> the review found 15 + 7 bugs and 3 efficiency problems; the efficiency problems are now fixed.</span>
+        <span class="more">details ▾</span>
+      </summary>
+      <div class="body">
+        <h4>What happened</h4>
+        <ul>
+          <li>The I.CARE <code>CATEGORIES.md</code> (60 categories) was converted to the simple format with visual descriptions.</li>
+          <li>Readiness check: a fresh install fails without a hand-written <code>categories.json</code>.</li>
+          <li>Efficiency fixes: History page at 30,000 moves 43 s → 20 ms; data written per filing 16 MB → about 0.5 KB.</li>
+        </ul>
+      </div>
+    </details>
+  </div>
+
+</div>
+
+<h2>Present: where it stands</h2>
+<p class="lede">Works well on one Mac with local folders. Everything beyond that is untested or blocked.</p>
+
+<div class="stats">
+  <div class="stat"><b>4,804</b><span>lines of Python, 28 files</span></div>
+  <div class="stat"><b>60</b><span>tests passing</span></div>
+  <div class="stat"><b>95.7%</b><span>top-level accuracy (silver labels)</span></div>
+  <div class="stat"><b>21</b><span>review bugs still open (14 + 7)</span></div>
+  <div class="stat"><b>0</b><span>researchers who have tried it</span></div>
+</div>
+
+<div class="scroll">
+<table class="tbl stack">
+  <thead><tr><th>Area</th><th>Status</th><th>Note</th></tr></thead>
+  <tbody>
+    <tr><td>Local folder: sort, file, rename, undo</td><td><span class="chip ok">✓ verified</span></td><td><small>Real model on this Mac</small></td></tr>
+    <tr><td>SigLIP 2 classifier, examples, fit check</td><td><span class="chip ok">✓ verified</span></td><td><small>69 silver-labelled photos plus test photos</small></td></tr>
+    <tr><td>Web UI: piles, viewer, categories, examples, receipts</td><td><span class="chip ok">✓ verified</span></td><td><small>Browser checks; one user</small></td></tr>
+    <tr><td>Move history at scale</td><td><span class="chip ok">✓ verified</span></td><td><small>Benchmarked up to 30,000 moves</small></td></tr>
+    <tr><td>Google Drive storage</td><td><span class="chip fake">◇ fakes only</span></td><td><small>Never run on a real Drive</small></td></tr>
+    <tr><td>Claude / Gemini classifiers, second opinion</td><td><span class="chip fake">◇ fakes only</span></td><td><small>No real API calls</small></td></tr>
+    <tr><td>Vertex AI, Cloud Run, docker-compose, installers</td><td><span class="chip unrun">△ never run</span></td><td><small>No gcloud, Docker or Windows here</small></td></tr>
+    <tr><td>Web Google sign-in</td><td><span class="chip bad">✕ broken</span></td><td><small>Review: a sign-in security value is lost between redirects</small></td></tr>
+    <tr><td>Session cookie</td><td><span class="chip bad">✕ weak</span></td><td><small>Signed but readable</small></td></tr>
+    <tr><td>First-run setup</td><td><span class="chip bad">✕ missing</span></td><td><small>Needs a hand-written JSON file</small></td></tr>
+    <tr><td>Code review findings</td><td><span class="chip part">◐ 1 of 15 fixed</span></td><td><small>Plus 7 unreported bugs; efficiency issues fixed</small></td></tr>
+  </tbody>
+</table>
+</div>
+
+<h2>Future: proposed roadmap</h2>
+<p class="lede">The researcher's path comes before hosting. V = value, E = effort, U = uncertainty (H/M/L). Items marked <span class="tag-new">new</span> are my recommendations; the rest were discussed earlier.</p>
+
+<div class="lanes">
+  <div class="lane now">
+    <h3>Now</h3>
+    <div class="sub">Make it safe and installable · about 1–2 weeks</div>
+    <div class="item"><b>Git + private repo</b><p>Diffs, history, install from a URL.</p><div class="vue"><span class="h">V H</span><span>E L</span><span>U L</span></div></div>
+    <div class="item"><b>Fix review blockers (local + Drive path)</b><p>Category lookup, name matching, thread safety, undo clash, one-picture rule.</p><div class="vue"><span class="h">V H</span><span>E M</span><span>U L</span></div></div>
+    <div class="item"><b>Real Drive smoke test</b><p>Scratch folder, 10 photos: dry run → file → undo.</p><div class="vue"><span class="h">V H</span><span>E L</span><span class="h">U H</span></div></div>
+    <div class="item"><b>First-run setup page</b><p>"Which folder are your photos in?" instead of JSON.</p><div class="vue"><span class="h">V H</span><span>E M</span><span>U M</span></div></div>
+  </div>
+  <div class="lane">
+    <h3>Next</h3>
+    <div class="sub">Prove it with a real user · about 2–4 weeks</div>
+    <div class="item"><b>Researcher quick start</b><p>One page with screenshots; admin material moved elsewhere.</p><div class="vue"><span class="h">V H</span><span>E L</span><span>U L</span></div></div>
+    <div class="item"><b>Watched first run</b><p>One hour, silent observation. Target: first sorted photo in under 15 minutes.</p><div class="vue"><span class="h">V H</span><span>E L</span><span>U M</span></div></div>
+    <div class="item"><b>Gold-labelled set</b><span class="tag-new">new</span><p>100–200 human-checked I.CARE photos; accuracy tracked for each change.</p><div class="vue"><span class="h">V H</span><span>E M</span><span>U M</span></div></div>
+    <div class="item"><b>CI install smoke test</b><p>macOS, Windows and Linux: install plus one tiny sort.</p><div class="vue"><span>V M</span><span>E M</span><span>U L</span></div></div>
+    <div class="item"><b>Drive filing cost</b><p>Only if the smoke test shows one-by-one filing is slow.</p><div class="vue"><span>V M</span><span>E M</span><span>U M</span></div></div>
+  </div>
+  <div class="lane">
+    <h3>Later</h3>
+    <div class="sub">Hosting, scale and learning Google Cloud</div>
+    <div class="item"><b>Sign-in fix → Cloud Run + Vertex</b><p>The hosted version, and the Google Cloud learning goal.</p><div class="vue"><span>V M</span><span>E M</span><span class="h">U H</span></div></div>
+    <div class="item"><b>Several people on one Drive folder</b><p>Only if researchers will share a folder.</p><div class="vue"><span>V M</span><span>E M</span><span>U M</span></div></div>
+    <div class="item"><b>Split the 1,103-line web app</b><span class="tag-new">new</span><p>After git and tests make refactoring safe.</p><div class="vue"><span>V M</span><span>E M</span><span>U L</span></div></div>
+    <div class="item"><b>Nightly sorting, folders → categories, number keys for top picks</b><p>From the plan's phase 7 and earlier offers.</p><div class="vue"><span>V L–M</span><span>E L–M</span><span>U M</span></div></div>
+  </div>
+</div>
+
+<div class="card decide">
+  <h3>Decisions the owner should make soon</h3>
+  <ul>
+    <li>Which setup the researcher needs: a Mac app on a folder, a shared Drive folder, or a hosted page.</li>
+    <li>Who labels 100–200 photos for the gold set.</li>
+    <li>Whether species-level sorting is in scope. If it is, it depends on example photos, not on the model.</li>
+    <li>Whether automatically filed photos should teach the model.</li>
+  </ul>
+</div>
+
+<h2>Lessons: AI-assisted development</h2>
+<p class="lede">What the evidence shows. There is no hand-built baseline, so none of this proves time savings.</p>
+
+<div class="two">
+  <div class="card help">
+    <h3>Where it helped</h3>
+    <ul>
+      <li><b>Speed:</b> the approved plan became about 20 modules, 24 tests, deploy scripts and docs in about 24 minutes. Later requests took 1–13 minutes of assistant time each.</li>
+      <li><b>Exploration:</b> the CloudKit album API was worked out and tested live in minutes. The plan's fact checks caught a wrong model size before any code.</li>
+      <li><b>Measuring:</b> accuracy on 69 real photos, before/after tables for scoring fixes, and a benchmark for the efficiency fixes.</li>
+      <li><b>Tests:</b> 0 → 60. They caught same-second undo records and a batching bug.</li>
+      <li><b>Docs:</b> the README was updated in most feature turns.</li>
+    </ul>
+  </div>
+  <div class="card hurt">
+    <h3>Where it created friction</h3>
+    <ul>
+      <li><b>UI rework:</b> about 6 versions of the main screen; 3 followed "terrible", "simpler" or "lots of issues".</li>
+      <li><b>Claims ahead of checks:</b> an "encrypted" cookie that isn't; Drive, Cloud and installer steps documented but never run.</li>
+      <li><b>Late defects:</b> one review at the end found 15 + 7 bugs and 3 efficiency problems.</li>
+      <li><b>Workaround before root cause:</b> the iCloud environment problem cost four more messages before the real fix.</li>
+      <li><b>Hard to review:</b> 259 shell calls against 13 direct file edits and writes, with no git diffs; one patch script failed on a stale anchor.</li>
+      <li><b>Scope growth:</b> a 1,103-line web app; the owner had to ask for "DRY and KISS".</li>
+    </ul>
+  </div>
+</div>
+
+<div class="card know" style="margin-top:12px">
+  <h3>Can't conclude yet, so measure from now on</h3>
+  <ul>
+    <li>Faster than by hand? No baseline. <b>Measure:</b> lead time per request, from message to a verified result.</li>
+    <li>Usable by a researcher? Nobody has tried. <b>Measure:</b> time to the first sorted photo; target under 15 minutes.</li>
+    <li>Accurate on real data? Silver labels only. <b>Measure:</b> accuracy on a gold set, per release.</li>
+    <li>How much rework? <b>Measure:</b> "broken" or "not what I meant" follow-ups per feature, and review findings per change.</li>
+  </ul>
+</div>
+
+<h2>Workflow changes to try</h2>
+<p class="lede">Each one has a simple check.</p>
+<div class="scroll">
+<table class="tbl stack">
+  <thead><tr><th>#</th><th>Change</th><th>How to tell it's working</th></tr></thead>
+  <tbody>
+    <tr><td>1</td><td><b>Git, one commit per request</b>, with "verified / not verified" in the message</td><td>Every change has a diff, and the "not verified" list shrinks to zero for the researcher path</td></tr>
+    <tr><td>2</td><td><b>Agree on UI before building</b>: a text mockup or a static screenshot, approved in one round</td><td>At most 1 redesign request per feature (this time: about 6)</td></tr>
+    <tr><td>3</td><td><b>Definition of done</b>: tests + a real-browser check + a list of what wasn't run; no security claim without a check</td><td>0 review findings that contradict a claim in a summary</td></tr>
+    <tr><td>4</td><td><b>Small, frequent reviews</b>: <code>/code-review</code> on each feature's diff, blockers fixed first</td><td>Under 5 findings per review, none older than one feature</td></tr>
+    <tr><td>5</td><td><b>Real environment early</b>: scratch Drive folder, gold set and fresh-install CI each release</td><td>Pass/fail recorded per release; the △ rows in the status table go away</td></tr>
+  </tbody>
+</table>
+</div>
+
+<footer>
+  Full detail, with the backlog table and sources: <a href="RETROSPECTIVE.md">RETROSPECTIVE.md</a>. Built from local evidence only, so read the gaps above before relying on any number.
+</footer>
+
+</div>
+</body>
+</html>

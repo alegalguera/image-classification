@@ -1,0 +1,36 @@
+{% from "_macros.html" import category_select %}
+{% set quickfile %}hx-post="/file" hx-trigger="change[target.value!=='__new__']" hx-include="closest tr" hx-target="closest tr" hx-swap="outerHTML swap:300ms"{% endset %}
+{% set quicknew %}hx-post="/file" hx-trigger="keyup[key=='Enter']" hx-include="closest tr" hx-target="closest tr" hx-swap="outerHTML swap:300ms"{% endset %}
+{% set cats = cfg.categories %}
+{% for r in detail.rows %}{% set p = r.pred %}{% set item = r.item %}
+<tr class="{{ r.kind }}" style="--i: {{ [loop.index0, 16]|min }}">
+  <td class="t">{% if r.kind == 'filed' %}<img src="/thumb/{{ item.id }}" alt="" loading="lazy" data-zoom="/thumb/{{ item.id }}" data-name="{{ item.name }}">{% else %}<img src="/thumb/{{ item.id }}" alt="" loading="lazy" title="open one by one" data-triage="{{ detail.key }}" data-id="{{ item.id }}">{% endif %}</td>
+  {% if r.kind == 'unsorted' %}
+    <td><div class="fname">{{ item.name }}</div><div class="why">{{ 'video · ' if item.is_video }}{{ item.created.strftime('%Y-%m-%d %H:%M') if item.created }}{% if item.size %} · {{ item.size|fsize }}{% endif %}</div></td>
+    <td></td><td></td>
+  {% elif r.kind == 'filed' %}
+    <td><div class="fname">{{ r.rec.new_name }}</div><div class="why">was {{ r.rec.orig_name }}{{ ' · your choice' if r.rec.decided_by == 'user' }}</div></td>
+    <td><span class="muted">{{ r.rec.category }}</span></td>
+    <td class="act"><input type="hidden" name="rec" value="{{ r.rec.id }}">
+      {{ category_select(cfg, exclude=r.rec.category, label='move to…') }}
+      <button class="sm" hx-post="/refile" hx-include="closest tr" hx-target="#toast" hx-swap="innerHTML">Move</button>
+      <button class="sm ghost" hx-post="/undo" hx-vals='{{ {"id": [r.rec.id]}|tojson }}'>↶ Undo</button></td>
+  {% else %}
+    {% if r.kind == 'review' %}{% set nofit = p.verdict.reason.startswith('no category fits') %}
+    <td colspan="2"><div class="fname">{{ item.name }}</div><div class="whyline" title="{{ p.verdict.reason }}">{{ p|explain }}</div>
+      {% if p.verdict.scores %}<div class="chips" style="margin-top:6px"><span class="why" style="align-self:center">{{ 'Closest:' if nofit else 'File as:' }}</span>{% for x, sc in p.verdict.scores.items() %}{% if loop.index <= 3 and x in cats %}
+        <button type="button" class="chip" hx-post="/file" hx-vals='{{ {"item_id": item.id, "category": x}|tojson }}' hx-target="closest tr" hx-swap="outerHTML swap:300ms">{{ x|leaf }}{% if not nofit %}<b>{{ '%.0f'|format(100 * sc) }}%</b>{% endif %}</button>{% endif %}{% endfor %}</div>{% endif %}</td>
+    {% else %}
+    <td><div class="fname">{{ item.name }}</div><div class="why" title="{{ p.verdict.reason }}">looks like <b>{{ p.verdict.category|leaf }}</b></div></td>
+    <td class="conf"><div class="cbar"><i style="width:{{ [100, (100 * p.verdict.confidence)|round]|min }}%"></i></div><span class="cnum">{{ '%.0f'|format(100 * p.verdict.confidence) }}% sure</span></td>
+    {% endif %}
+    <td class="act"><input type="hidden" name="item_id" value="{{ item.id }}">
+      {% if r.kind == 'cat' %}<button class="sm primary" title="file into {{ p.verdict.category }}" hx-post="/file" hx-vals='{{ {"category": p.verdict.category}|tojson }}' hx-include="closest tr" hx-target="closest tr" hx-swap="outerHTML swap:300ms">✓ {{ p.verdict.category|leaf }}</button>{% endif %}
+      {{ category_select(cfg, exclude=(p.verdict.category if r.kind == 'cat' else ''), video=item.is_video, label='other category…', attrs=quickfile, newcat_attrs=quicknew) }}</td>
+  {% endif %}
+</tr>
+{% endfor %}
+{% set shown = detail.offset + detail.rows|length %}
+{% if shown < detail.total %}
+<tr class="more"><td colspan="4"><button class="sm" hx-get="/pile?key={{ detail.key|urlencode }}&offset={{ shown }}" hx-target="closest tr" hx-swap="outerHTML">Show more ({{ detail.total - shown }} left)</button></td></tr>
+{% endif %}

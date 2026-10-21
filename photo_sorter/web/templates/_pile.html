@@ -1,0 +1,6 @@
+{# a stacked pile of up to 4 thumbnails; ids[0] ends on top #}
+<button type="button" class="pile {{ size|default('') }}" title="{{ title|default('Show the list') }}"
+  hx-get="/pile?key={{ key|urlencode }}" hx-target="#detail" hx-swap="outerHTML show:#detail:top">
+  {% if ids %}{% for id in ids|reverse %}<img src="/thumb/{{ id }}" alt="" loading="lazy">{% endfor %}{% else %}<span class="tray"></span>{% endif %}
+  <span class="badge">{{ count }}</span>
+</button>

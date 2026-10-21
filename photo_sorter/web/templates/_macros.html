@@ -1,0 +1,10 @@
+{# One category picker for every place a photo can go: rows, filed list, history, examples panel. #}
+{% macro category_select(cfg, selected='', exclude='', review=True, video=False, label='', attrs='', newcat_attrs='') %}
+<select name="category" onchange="newCat(this)" aria-label="category" {{ attrs|safe }}>
+  {% if label %}<option value="" disabled {{ 'selected' if not selected }}>{{ label }}</option>{% endif %}
+  {% for x in (cfg.video_categories if (video and cfg.video_categories) else cfg.categories) %}{% if x != exclude %}<option value="{{ x }}" {{ 'selected' if x == selected }}>{{ x }}</option>{% endif %}{% endfor %}
+  {% if review %}<option value="{{ cfg.review_category }}">{{ cfg.review_category }} folder</option>{% endif %}
+  <option value="__new__">＋ New category…</option>
+</select>
+<input class="newcat" name="new_category" placeholder="new category name, then Enter" hidden autocomplete="off" {{ newcat_attrs|safe }}>
+{% endmacro %}

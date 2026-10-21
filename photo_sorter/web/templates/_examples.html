@@ -1,0 +1,64 @@
+{% from "_macros.html" import category_select %}
+{# Everything that teaches one category: its examples (<category>/_training_data) and the newest photos filed in it. #}
+<div class="expanel">
+  <div class="ex-current" hx-get="/examples?cat={{ cat|urlencode }}" hx-select=".ex-current" hx-trigger="examples-changed from:body" hx-swap="outerHTML">
+    <input type="hidden" name="cat" value="{{ cat }}">
+    <div class="ex-head">
+      <span class="ico ex-ico"></span><b>What teaches {{ cat|leaf }}</b>
+      <span class="sp"></span>
+      <button type="button" class="sm ghost" onclick="this.closest('.expanel-slot').innerHTML=''">✕</button>
+    </div>
+    {% if not cfg.is_embedding_provider %}<div class="hintbox warn">Examples are used by the SigLIP and Vertex models. The model in use now ({{ cfg.provider }}) ignores them.</div>{% endif %}
+    {% if msg %}<div class="hintbox {{ 'warn' if doubts else 'ok' }}">{{ msg }}</div>{% endif %}
+
+    <div class="ex-label">Examples <small>{{ items|length }} in <code>{{ folder }}</code></small></div>
+    <div class="ex-grid">
+      {% for i in items %}{% set d = doubts.get(i.id) %}
+      <label class="ex {{ 'doubt' if d }}" title="{{ i.name }}"><input type="checkbox" name="ids" value="ex:{{ i.id }}">
+        <img src="/thumb/{{ i.id }}" alt="" loading="lazy">
+        <span class="zoom" data-zoom="/thumb/{{ i.id }}" data-name="{{ i.name }}" title="see larger">⤢</span>
+        <button type="button" class="x" title="remove from examples (goes to the trash)" hx-post="/examples/remove" hx-vals='{{ {"cat": cat, "ids": ["ex:" ~ i.id]}|tojson }}'
+          hx-target="closest .ex-current" hx-select=".ex-current" hx-swap="outerHTML">×</button>
+        {% if d %}<span class="doubt-tag">looks like {{ d[0]|leaf }}</span>{% endif %}</label>
+      {% endfor %}
+      <form class="ex-drop" hx-post="/examples/upload" hx-encoding="multipart/form-data" hx-trigger="change"
+        hx-target="closest .ex-current" hx-select=".ex-current" hx-swap="outerHTML">
+        <input type="hidden" name="cat" value="{{ cat }}">
+        <label><input type="file" name="files" multiple accept="image/*"><span>＋</span><small>upload<br>or drop</small></label>
+      </form>
+    </div>
+
+    {% if filed %}
+    <div class="ex-label">Filed in {{ cat|leaf }} <small>these teach too: the newest {{ filed|length }}{% if filed_total > filed|length %} of {{ filed_total }}{% endif %}</small></div>
+    <div class="ex-grid">
+      {% for i in filed %}{% set d = doubts.get(i.id) %}
+      <label class="ex filedex {{ 'doubt' if d }}" title="{{ i.name }}"><input type="checkbox" name="ids" value="filed:{{ i.id }}">
+        <img src="/thumb/{{ i.id }}" alt="" loading="lazy">
+        <span class="zoom" data-zoom="/thumb/{{ i.id }}" data-name="{{ i.name }}" title="see larger">⤢</span>
+        {% if d %}<span class="doubt-tag">looks like {{ d[0]|leaf }}</span>{% endif %}</label>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if items or filed %}
+    <div class="ex-bar">
+      <span class="muted">Selected →</span>
+      {{ category_select(cfg, exclude=cat, label='move to…') }}
+      <button type="button" class="sm primary" hx-post="/examples/move" hx-include="closest .ex-current" hx-target="closest .ex-current" hx-select=".ex-current" hx-swap="outerHTML">Move</button>
+      <button type="button" class="sm" hx-post="/examples/remove" hx-include="closest .ex-current" hx-target="closest .ex-current" hx-select=".ex-current" hx-swap="outerHTML">Remove from examples</button>
+      <span class="sp"></span>
+      <button type="button" class="sm" title="Re-judge every photo here against all categories, each left out of its own comparison"
+        hx-get="/examples?cat={{ cat|urlencode }}&check=1" hx-target="closest .ex-current" hx-select=".ex-current" hx-swap="outerHTML">🔎 Check this category</button>
+    </div>
+    {% endif %}
+    {% if not items and not filed %}<p class="hint">No examples yet. Add 5 to 20 typical photos: upload your own, search the web below, or use “＋ example” on an image in the review list.</p>{% endif %}
+    <p class="hint">A picture teaches only one category: moving it, filing it, or adding it to another category's examples takes it out of this one. If a photo here is wrong, select it and move it; then <b>Check this category</b> finds other photos it may have pulled in. Click a photo to select it, ⤢ to see it larger.</p>
+  </div>
+  <form class="ex-search" hx-get="/examples/search" hx-target="next .ex-results" hx-swap="innerHTML">
+    <input type="hidden" name="cat" value="{{ cat }}">
+    <input type="search" name="q" value="{{ query }}" aria-label="search the web for example images">
+    <button class="sm primary">Search the web</button>
+  </form>
+  <p class="hint">Results follow your words: “turtle” also finds land tortoises. Be specific, for example “sea turtle swimming underwater”. Images are openly licensed (Openverse); the source and licence of each download are logged in <code>.sorter/examples.jsonl</code>.</p>
+  <div class="ex-results"></div>
+</div>

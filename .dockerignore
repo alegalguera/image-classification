@@ -1,0 +1,9 @@
+.venv
+.git
+results
+tests
+deploy/*.command
+deploy/*.ps1
+__pycache__
+*.pyc
+.env

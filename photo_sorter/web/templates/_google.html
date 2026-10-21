@@ -1,0 +1,20 @@
+<div id="google">
+{% if google.signed_in %}
+  <label class="hint" style="margin:0">Paste the folder's link (in Drive: Share → Copy link, or the address bar while the folder is open)</label>
+  <input type="text" name="link" placeholder="https://drive.google.com/drive/folders/…" autocomplete="off">
+  <div class="row"><button class="primary" name="kind" value="drive">Use this Drive folder</button></div>
+{% elif google.pending %}
+  <div hx-get="/setup/google" hx-trigger="every 2s" hx-swap="outerHTML" hx-target="#google">
+    <p><b>Finish signing in in the browser tab that just opened.</b> This page continues by itself.</p>
+  </div>
+{% elif google.client %}
+  {% if google.error %}<div class="banner err">Sign-in did not finish: {{ google.error }}</div>{% endif %}
+  <p class="muted" style="margin:0">Sign in once with the Google account that has access to the folder.</p>
+  {% if hosted %}<a class="btn primary" href="/auth/start">Sign in with Google</a>
+  {% else %}<div class="row"><button type="button" class="primary" hx-post="/setup/google" hx-target="#google" hx-swap="outerHTML">Sign in with Google</button></div>{% endif %}
+{% else %}
+  <p class="muted" style="margin:0">Google sign-in is not set up on this computer yet. Ask whoever set up photo-sorter for the
+    sign-in file <code>client_secret.json</code> and save it as<br><code>{{ google.client_path }}</code>, then reload this page.</p>
+  <p class="hint">Or use the folder from Google Drive for Desktop on the left: it works without signing in here.</p>
+{% endif %}
+</div>

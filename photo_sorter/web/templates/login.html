@@ -1,0 +1,10 @@
+{% extends "base.html" %}{% block content %}
+<div class="empty">
+  <h1>Sign in with Google</h1>
+  <p>photo-sorter sorts photos inside one of your Google Drive folders: it moves them into category folders there.<br>
+     Nothing is copied to this server; your sign-in is kept only in your browser, encrypted.</p>
+  <p><a href="/auth/start"><button class="primary">Continue with Google</button></a></p>
+  <p class="hint">Next you paste the link of the Drive folder to sort. Google may warn that the app is not verified:
+     it is your team's own tool; choose Advanced → continue.</p>
+</div>
+{% endblock %}
