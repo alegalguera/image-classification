@@ -44,7 +44,8 @@
   </div>
   <div class="tree-box">
     {% if t.roots %}{{ branch(t.roots, '', flash, added) }}{% else %}
-    <div class="tree-empty"><b>No categories yet.</b> Start with a few broad ones, for example <i>Coral</i>, <i>Sponge</i>, <i>Diver</i>, <i>People</i>. You can split them into sub-categories later.</div>{% endif %}
+    <div class="tree-empty"><b>No categories yet.</b> Start with a few broad ones, for example <i>Coral</i>, <i>Sponge</i>, <i>Diver</i>, <i>People</i>. You can split them into sub-categories later.
+      {% if t.store.storage is defined %}Or <a href="/setup/categories">start from a ready-made list</a>, such as coral reef restoration.{% endif %}</div>{% endif %}
     <form class="adder root" hx-post="/categories/add" hx-target="#tree" hx-swap="outerHTML">
       <span class="ico new"></span>
       <input type="hidden" name="parent" value="">

@@ -60,6 +60,9 @@ class SiglipEmbedder:
         self.device = device
         if device == "cpu":
             torch.set_num_threads(max(1, torch.get_num_threads()))
+        from transformers.utils import logging as hf_logging
+
+        hf_logging.disable_progress_bar()   # the "Loading weights" bar; download progress (huggingface_hub) still shows
         self.processor = AutoProcessor.from_pretrained(model_name)
         self.model = AutoModel.from_pretrained(model_name).to(device).eval()
         self.dim = int(getattr(self.model.config, "projection_dim", None) or self.model.config.vision_config.hidden_size)

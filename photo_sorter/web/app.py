@@ -44,7 +44,7 @@ from ..items import IMAGE_EXTS, Item
 from ..classifiers import Verdict
 from ..naming import safe_dirname
 from ..sorter import Prediction, Sorter
-from ..taxonomy import Taxonomy, dump, from_paths, tree_rows
+from ..taxonomy import Taxonomy, dump, from_paths, presets, tree_rows
 
 TEMPLATES = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
 SESSION_COOKIE = "ps_session"
@@ -788,19 +788,33 @@ def create_app(cfg: Config) -> FastAPI:
         return [p for p in s.sorter.storage.folder_tree(3)
                 if p[0] not in skip and not any(":" in x or "›" in x or x.startswith(("-", "*", "#")) for x in p)]
 
+    def has_categories(s: Session) -> bool:
+        return bool(s.cfg.categories or s.cfg.video_categories) or s.cfg.categories_store is None
+
     @app.get("/setup/categories", response_class=HTMLResponse)
     def setup_categories(request: Request):
-        s = require(request)
+        """Start a category list: from the folders already there, from a ready-made list, or empty."""
+        s = require(request, fresh=True)
+        if has_categories(s):
+            return RedirectResponse("/categories", status_code=303)
         rows = tree_rows(from_paths(folder_categories(s)))
-        return render(request, "setup.html", step="categories", s=s, rows=rows, leaves=sum(1 for _, _, n in rows if n.is_leaf))
+        return render(request, "setup.html", step="categories", s=s, rows=rows, presets=presets(),
+                      leaves=sum(1 for _, _, n in rows if n.is_leaf))
 
     @app.post("/setup/categories")
     def setup_categories_save(request: Request, mode: str = Form("empty")):
-        s = require(request)
-        roots = from_paths(folder_categories(s)) if mode == "folders" else []
-        s.cfg.categories_store.write(dump(roots))
+        s = require(request, fresh=True)
+        if has_categories(s):        # never replace a list someone already made
+            return RedirectResponse("/categories?" + urlencode({"err": "this folder already has categories; edit them here"}), status_code=303)
+        if mode.startswith("preset:"):
+            text = next((p["text"] for p in presets() if p["key"] == mode[len("preset:"):]), None)
+            if text is None:
+                raise HTTPException(404, "no such list")
+        else:
+            text = dump(from_paths(folder_categories(s)) if mode == "folders" else [])
+        s.cfg.categories_store.write(text)
         s.refresh_categories()
-        return RedirectResponse("/" if roots else "/categories", status_code=303)
+        return RedirectResponse("/categories" if mode == "empty" else "/", status_code=303)
 
     @app.post("/setup/google", response_class=HTMLResponse)
     def setup_google(request: Request):

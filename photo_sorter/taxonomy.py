@@ -174,6 +174,25 @@ def tree_rows(roots: list[Node]) -> list[tuple[str, int, Node]]:
     return out
 
 
+PRESETS_DIR = Path(__file__).parent / "presets"
+
+
+def presets() -> list[dict]:
+    """Ready-made category lists shipped with the app (presets/*.md), offered on the setup page. Each file is a normal
+    CATEGORIES.md whose first heading is its title and whose first paragraph says what it covers."""
+    out = []
+    for p in sorted(PRESETS_DIR.glob("*.md")):
+        text = p.read_text(encoding="utf-8")
+        lines = [ln.strip() for ln in text.splitlines()]
+        roots, tail = parse(text)
+        rows = tree_rows(roots)
+        out.append({"key": p.stem, "text": dump(roots, tail), "rows": rows,
+                    "title": next((ln[2:] for ln in lines if ln.startswith("# ")), p.stem),
+                    "about": next((ln for ln in lines if ln and not ln.startswith(("#", "-", "*"))), ""),
+                    "leaves": sum(1 for _, _, n in rows if n.is_leaf)})
+    return out
+
+
 class Taxonomy:
     def __init__(self, store):
         """store: FileCategories / FolderCategories, or a path to a Markdown file."""

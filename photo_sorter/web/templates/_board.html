@@ -18,7 +18,7 @@
 {% endif %}
 
 {% if not cfg.categories %}
-<div class="banner err"><b>No categories yet.</b> <span>Sorting needs a list to choose from.</span> <a class="btn sm" href="/categories">Add categories</a></div>
+<div class="banner err"><b>No categories yet.</b> <span>Sorting needs a list to choose from.</span> <a class="btn sm" href="/categories">Add categories</a>{% if cfg.categories_in_folder %} <a class="btn sm" href="/setup/categories">Use a ready-made list</a>{% endif %}</div>
 {% endif %}
 
 {% if c.unsorted %}

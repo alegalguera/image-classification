@@ -47,7 +47,7 @@
 {% else %}
   <div class="eyebrow">Setup · {{ s.sorter.storage.root_label|short }}</div>
   <h1>What should photos be sorted into?</h1>
-  <p class="sub">This folder has no category list yet. It is saved as <code>CATEGORIES.md</code> inside the folder, and you can edit it any time on the Categories page.</p>
+  <p class="sub">This folder has no category list yet. Pick a starting point; it is saved as <code>CATEGORIES.md</code> inside the folder, so everyone who opens the folder uses the same list.</p>
   <form method="post" action="/setup/categories">
     {% if rows %}
     <div class="card" style="background:#fff;border:2px solid var(--line);padding:20px 22px;margin-bottom:14px">
@@ -57,7 +57,25 @@
       <div><button class="primary" name="mode" value="folders">Use these {{ leaves }} →</button></div>
     </div>
     {% endif %}
-    <button class="{{ 'ghost' if rows else 'primary big' }}" name="mode" value="empty">Start with an empty list{{ ' instead' if rows }} →</button>
+    {% if presets %}
+    <div class="card" style="background:#fff;border:2px solid var(--line);padding:20px 22px;margin-bottom:14px">
+      <h2>{{ 'Or start' if rows else 'Start' }} from a ready-made list</h2>
+      {% for p in presets %}
+      <div class="preset">
+        <div class="preset-text">
+          <b>{{ p.title }}</b> <span class="muted">· {{ p.leaves }} categories</span>
+          <div class="muted">{{ p.about }}</div>
+          <details><summary>See the list</summary>
+            <div class="tree-preview">{% for key, depth, node in p.rows %}{{ '  ' * depth }}{{ '└ ' if depth else '' }}{{ node.name }}<br>{% endfor %}</div>
+          </details>
+        </div>
+        <button class="{{ 'ghost' if rows else 'primary' }}" name="mode" value="preset:{{ p.key }}">Use this list →</button>
+      </div>
+      {% endfor %}
+      <p class="hint" style="margin:8px 0 0">You can remove or rename anything afterwards on the Categories page.</p>
+    </div>
+    {% endif %}
+    <button class="ghost" name="mode" value="empty">Start with an empty list instead →</button>
   </form>
 {% endif %}
 </div>

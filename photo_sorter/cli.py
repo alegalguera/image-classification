@@ -17,6 +17,7 @@ Legacy iCloud shared-album flow (source.kind = "icloud"): fetch, classify, apply
 from __future__ import annotations
 
 import argparse
+import re
 import sys
 from pathlib import Path
 
@@ -35,7 +36,8 @@ def main(argv: list[str] | None = None) -> int:
     sub = ap.add_subparsers(dest="cmd", required=True)
 
     sub.add_parser("auth", help="sign in to Google Drive (opens a browser)").add_argument("--logout", action="store_true")
-    sub.add_parser("setup", help="first-run check: config, model download, Google sign-in")
+    p = sub.add_parser("setup", help="get ready: download the image model, check the folder and Google sign-in")
+    p.add_argument("--remove-model", action="store_true", help="delete the downloaded image model (the uninstaller uses this)")
     sub.add_parser("scan", help="list the inbox")
     p = sub.add_parser("classify", help="predict categories, move nothing")
     p.add_argument("--limit", type=int)
@@ -182,18 +184,45 @@ def cmd_auth(a) -> int:
     return 0
 
 
+def _remove_model(cfg) -> int:
+    from huggingface_hub import scan_cache_dir
+
+    try:
+        cache = scan_cache_dir()
+    except Exception:  # noqa: BLE001 - no cache folder at all
+        cache = None
+    revs = [r.commit_hash for repo in (cache.repos if cache else []) if repo.repo_id == cfg.model_name for r in repo.revisions]
+    if not revs:
+        print(f"{cfg.model_name} is not downloaded")
+        return 0
+    plan = cache.delete_revisions(*revs)
+    plan.execute()
+    print(f"removed {cfg.model_name} ({plan.expected_freed_size_str})")
+    return 0
+
+
 def cmd_setup(a, cfg) -> int:
+    """Get ready: download the image model once and check the photo folder (the installers run this)."""
+    if getattr(a, "remove_model", False):
+        return _remove_model(cfg)
     if cfg.path:
         print(f"Config: {cfg.path}")
-    print(f"Model: {cfg.model_name} ({cfg.provider})")
     if cfg.provider == "siglip":
-        print("Loading it (downloads about 1.5 GB the first time) ...", flush=True)
         from .embedders import make_embedder
+        from .embedders.siglip import _hf_snapshot
 
-        emb = make_embedder(cfg)
-        print(f"  ok, runs on {'the Apple GPU' if emb.device == 'mps' else emb.device.upper()}")
+        print(f"Image model: {cfg.model_name} (SigLIP 2 by Google, from huggingface.co)")
+        if _hf_snapshot(cfg.model_name)[0] is None:
+            print("  downloading it, about 1.4 GB, only this once ...", flush=True)
+        info = make_embedder(cfg).meters()[0].info
+        folder = re.sub(r"/snapshots/[^/]+$", "", info.get("weights") or "")
+        if folder:
+            print(f"  saved in {folder} ({info.get('disk', 0) / 2**30:.1f} GB)")
+        print(f"  runs on {info['where'].split(' · ')[1]}")
+    else:
+        print(f"Image model: {cfg.model_name} ({cfg.provider}, runs in the cloud)")
     if not cfg.source_root:
-        print("Ready. Open the app (the Photo Sorter icon, or `photo-sorter serve --open`) and choose your photo folder there.")
+        print("Photo folder: not chosen yet; you pick it in the app")
         return 0
     print(f"Photo folder: {cfg.source_root}")
     if cfg.source_kind == "drive":

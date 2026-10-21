@@ -177,3 +177,29 @@ def test_hosted_sign_in_then_paste_a_drive_link(app_dir, monkeypatch):
     page = c.get("/")
     assert page.status_code == 200 and "1 unsorted image" in page.text and "Sign out" in page.text
     assert not (app_dir / "app.json").exists()                                      # the server remembers nothing
+
+
+def test_ready_made_lists(app_dir, tmp_path):
+    from photo_sorter.taxonomy import presets
+
+    lists = {p["key"]: p for p in presets()}
+    reef = lists["coral-reef-restoration"]
+    assert reef["title"] == "Coral reef restoration" and reef["leaves"] > 50 and "Coral and sponge" in reef["about"]
+    assert lists["reef-basics"]["leaves"] == 7
+
+    photos = tmp_path / "Reef photos"
+    (photos / "Inbox").mkdir(parents=True)
+    config.remember_folder(str(photos))
+    c = TestClient(create_app(base_config()), follow_redirects=False)
+    c.get("/login")
+    page = c.get("/setup/categories")
+    assert "Coral reef restoration" in page.text and "Use this list" in page.text and "See the list" in page.text
+    r = c.post("/setup/categories", data={"mode": "preset:coral-reef-restoration"})
+    assert r.headers["location"] == "/"
+    text = (photos / "CATEGORIES.md").read_text()
+    assert "    - APAL: Acropora palmata" in text and "## Notes" in text
+    assert f"Categories<b>{reef['leaves']}</b>" in c.get("/").text
+    # a list that exists is never replaced from here
+    assert c.get("/setup/categories").headers["location"] == "/categories"
+    assert "already+has+categories" in c.post("/setup/categories", data={"mode": "preset:reef-basics"}).headers["location"]
+    assert "APAL" in (photos / "CATEGORIES.md").read_text()

@@ -19,6 +19,11 @@ Inbox/IMG_4101.jpg ──► embed (SigLIP 2 locally, or Vertex AI in the cloud)
 
 ## Install by hand, development
 
+The installers (`deploy/install.command`, `deploy/install.ps1`) run `uv tool install ".[researcher]"` from this
+folder, then `photo-sorter setup` (downloads the image model to the Hugging Face cache), then write a Desktop
+launcher that runs `photo-sorter serve --open`. The uninstallers reverse that, using `photo-sorter setup
+--remove-model` for the model. Everything they do is logged (`~/Library/Logs/photo-sorter-install.log` on a Mac).
+
 `uv tool install --python 3.12 ".[researcher]"` from this folder, then `photo-sorter serve --open`.
 Developers: `uv sync --extra dev && uv run pytest`.
 
@@ -53,6 +58,11 @@ category with sub-categories acts as a folder and photos are filed into the leav
 `Coral/Bleaching/bleaching_001.jpg`. Names starting with "Videos" apply to videos only. Notes after a
 `## ` heading are kept untouched when the UI saves the file. Start simple (four or five categories) and
 split later; the filed photos stay where they are, and the manifest still lets you undo.
+
+The setup page also offers ready-made lists from `photo_sorter/presets/` (for example *Coral reef restoration*).
+To add one, drop a CATEGORIES.md-style file there: its `# ` heading is the title and its first paragraph the
+description. For a team, the simplest way to share a list is to put `CATEGORIES.md` in the shared folder:
+everyone who opens it gets the list automatically.
 
 ## 2. Settings
 
@@ -241,7 +251,7 @@ iCloud Drive folder on a Mac; `--dest photos` imports into Apple Photos albums (
 ## Layout
 
 ```
-examples/CATEGORIES.md           an example category list; each photo folder keeps its own CATEGORIES.md
+photo_sorter/presets/            ready-made category lists offered on the setup page (add a .md file to add one)
 categories.json                  optional local config file (git-ignored, overrides the folder's settings)
 photo_sorter/taxonomy.py         the category tree: parse / save CATEGORIES.md, add / rename / delete
 photo_sorter/config.py           settings + categories; category paths joined with " › "
@@ -254,6 +264,6 @@ photo_sorter/manifest.py         .sorter/manifest.jsonl inside the photo folder
 photo_sorter/web/                FastAPI + HTMX UI (also the Cloud Run entry point)
 photo_sorter/cli.py              auth, setup, scan, classify, file, undo, refs, eval, serve
 photo_sorter/legacy_icloud.py    iCloud shared-album flow (fetch / classify / apply)
-deploy/                          Dockerfile, Cloud Run scripts, docker-compose, laptop installers
+deploy/                          Dockerfile, Cloud Run scripts, docker-compose, laptop installers and uninstallers
 tests/                           pytest (fake embedder, fake Drive, web client)
 ```

@@ -3,6 +3,9 @@ name = "photo-sorter"
 version = "0.2.0"
 description = "Sort research photos into category folders (Google Drive or local) with image embeddings; learns from _training_data folders"
 requires-python = ">=3.11"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Alejandro Galguera" }]
 dependencies = [
     "pydantic>=2",
     "pillow>=10",
