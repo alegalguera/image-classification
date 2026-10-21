@@ -13,7 +13,7 @@
   </div>
   <div class="tip">{% if k == 'unsorted' %}Not sorted yet. Click a thumbnail to see it larger.
     {% elif k == 'review' %}The model was not sure about these. Fastest: <b>▶ One by one</b> (or click a thumbnail) and press the number of a category. Here: click a suggestion, or pick any category on the right; it files right away and Undo is one click.
-    {% elif k == 'filed' %}Moved during this session. Undo puts an image back in the inbox with its original name.
+    {% elif k == 'filed' %}Moved during this session. Undo puts a photo back where it was, with its original name.
     {% else %}The model thinks these are <b>{{ k|leaf }}</b>. ✓ files one; a wrong one: pick its category on the right, it files right away.{% endif %}</div>
   {% if not detail.total %}<p class="muted" style="padding:18px">Nothing left here.</p>{% endif %}
   <table class="rows">{% include "_rows.html" %}</table>

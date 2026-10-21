@@ -145,7 +145,7 @@ def test_empty_inbox_guide(root, tmp_path, monkeypatch):
     (root / "Inbox" / "notes.txt").write_text("x")
     c.post("/scan")
     r = c.get("/")
-    assert "The inbox is empty." in r.text and str(root / "Inbox") in r.text and "Copy path" in r.text
+    assert "No new photos to sort." in r.text and str(root / "Inbox") in r.text and "Copy path" in r.text
     assert "notes.txt" in r.text and "Sort" in r.text and 'class="pile big"' not in r.text
     import shutil
     shutil.rmtree(root / "Inbox")

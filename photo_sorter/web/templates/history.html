@@ -2,7 +2,7 @@
 {% extends "base.html" %}{% block content %}
 <div class="eyebrow">History</div>
 <h1>What happened</h1>
-<p class="sub">Every move is recorded in <code>.sorter/manifest.jsonl</code> inside the photo folder. Undo takes a photo back one step (to the inbox, or to its previous category if it was moved). <b>Move</b> re-files a photo into another category; its example copies follow it.</p>
+<p class="sub">Every move is recorded in <code>.sorter/manifest.jsonl</code> inside the photo folder. Undo takes a photo back one step (to where it was, or to its previous category if it was moved). <b>Move</b> re-files a photo into another category; its example copies follow it.</p>
 <h2 style="margin:8px 0 10px">Spending in this folder</h2>
 {% if not runs %}<div class="banner">No sorting runs recorded yet. Each run is logged in <code>.sorter/runs.jsonl</code>.</div>{% else %}
 <div class="rc-grid totals">

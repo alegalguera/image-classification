@@ -4,7 +4,7 @@
 
 {% if s.last_run %}{% set r = s.last_run %}
   {% if r.error %}<div class="banner err"><b>Sorting stopped.</b> {{ r.error }}</div>
-  {% elif r.paused %}<div class="banner"><b>Paused</b><span class="mono">{{ r.done }} of {{ r.total }} sorted</span><span class="muted">The rest are still in the inbox pile. Press Sort to continue.</span></div>
+  {% elif r.paused %}<div class="banner"><b>Paused</b><span class="mono">{{ r.done }} of {{ r.total }} sorted</span><span class="muted">The rest are still in the unsorted pile. Press Sort to continue.</span></div>
   {% elif sorted_piles %}<div class="banner ok"><b>✓ Sorted {{ r.done }} image{{ 's' if r.done != 1 }}</b><span class="mono">in {{ '%.1f'|format(r.secs) }}s{% if r.load %} (+{{ '%.1f'|format(r.load) }}s loading the model){% endif %}</span><span>{{ r.labeled }} labeled · {{ r.review }} need{{ 's' if r.review == 1 }} your decision</span></div>{% endif %}
   {% if r.usage %}{% set rep = r.usage %}{% set u = rep.u %}
   <details class="used"><summary><b>What it used:</b> <span class="mono">{{ rep.models[0].info.model if rep.models }} · {{ u.images_embedded }} computed{% if u.cache_hits %} + {{ u.cache_hits }} cached{% endif %}{% if u.input_tokens %} · {{ (u.input_tokens + u.output_tokens)|num }} tokens{% else %} · {{ (u.image_tokens + u.text_tokens)|num }} tokens{% endif %}{% if u.flops %} · ≈{{ u.flops|num }}FLOP{% endif %} · {{ '%.1f'|format(rep.cpu) }}s CPU · {{ rep.cost|usd }}</span> <span class="muted">details</span></summary>
@@ -75,22 +75,22 @@
 <section class="guide">
   <div class="sprite-tray"><i class="fish"></i></div>
   <div class="text">
-    <div class="eyebrow">{{ 'All done' if c.filed else 'Inbox' }}</div>
-    <h1>{% if c.filed %}Everything is filed.{% else %}The inbox is empty.{% endif %}</h1>
+    <div class="eyebrow">{{ 'All done' if c.filed else 'Photos to sort' }}</div>
+    <h1>{% if c.filed %}Everything is filed.{% else %}No new photos to sort.{% endif %}</h1>
     <p class="sub">{% if c.filed %}{{ c.filed }} image{{ 's' if c.filed != 1 }} filed this session. <a href="#" hx-get="/pile?key=filed" hx-target="#detail" hx-swap="outerHTML show:#detail:top">See them</a> or check <a href="/history">History</a> to undo.{% else %}Nothing is waiting to be sorted. Here is how to start:{% endif %}</p>
     <ol class="howto">
       <li class="{{ 'ok' if cfg.categories }}"><div><b>Categories</b>
         {% if cfg.categories %}{{ cfg.categories|length }} ready: {{ (cfg.categories|list)[:5]|map('leaf')|join(', ') }}{{ '…' if cfg.categories|length > 5 }} · <a href="/categories">edit</a>
         {% else %}Add a few words to choose from, like Coral, Sponge, Diver, People. <a href="/categories">Add categories</a>{% endif %}</div></li>
-      <li><div><b>Put photos in the {{ inbox.name }} folder</b>
+      <li><div><b>Put new photos in the {{ inbox.name }} folder</b>
         {% if inbox.path %}<code>{{ inbox.path }}</code> <button class="sm" data-copy="{{ inbox.path }}">Copy path</button>{% endif %}
         {% if inbox.url %}<a class="btn sm" href="{{ inbox.url }}" target="_blank">Open in Google Drive</a>{% endif %}
         {% if not inbox.exists %}<div class="hint">That folder does not exist yet. <form method="post" action="/create-inbox" style="display:inline"><button class="sm">Create it</button></form></div>{% endif %}
-        <div class="hint">JPG, PNG, HEIC, AVIF, WebP and videos. Subfolders are not read.</div></div></li>
-      <li><div><b>Rescan, then press Sort</b>
-        <form method="post" action="/scan" style="margin-top:6px"><button class="primary">↻ Rescan inbox</button></form></div></li>
+        <div class="hint">JPG, PNG, HEIC, AVIF, WebP and videos. {% if inbox.root %}Only photos directly in this folder are sorted; the category folders inside it are left alone. <a href="/setup/inbox">Use a separate folder for new photos</a>{% else %}Subfolders are not read. <a href="/setup/inbox">Change where new photos arrive</a>{% endif %}</div></div></li>
+      <li><div><b>Look for new photos, then press Sort</b>
+        <form method="post" action="/scan" style="margin-top:6px"><button class="primary">↻ Look for new photos</button></form></div></li>
     </ol>
-    {% if inbox.skipped %}<p class="hint">{{ inbox.skipped|length }} file{{ 's' if inbox.skipped|length != 1 }} in the inbox {{ 'are' if inbox.skipped|length != 1 else 'is' }} not a photo or video and {{ 'were' if inbox.skipped|length != 1 else 'was' }} skipped: {{ inbox.skipped[:5]|join(', ') }}{{ ' …' if inbox.skipped|length > 5 }}</p>{% endif %}
+    {% if inbox.skipped %}<p class="hint">{{ inbox.skipped|length }} file{{ 's' if inbox.skipped|length != 1 }} in the {{ inbox.name }} folder {{ 'are' if inbox.skipped|length != 1 else 'is' }} not a photo or video and {{ 'were' if inbox.skipped|length != 1 else 'was' }} skipped: {{ inbox.skipped[:5]|join(', ') }}{{ ' …' if inbox.skipped|length > 5 }}</p>{% endif %}
   </div>
 </section>
 {% endif %}

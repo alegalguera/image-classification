@@ -1,0 +1,76 @@
+# On every push: the tests, then a real install, start and uninstall on a Mac and on Windows,
+# using the same installer scripts the README tells researchers to paste.
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install uv
+        run: curl -LsSf https://astral.sh/uv/install.sh | sh
+      - name: Run the tests
+        run: |
+          export PATH="$HOME/.local/bin:$PATH"
+          uv sync --extra dev
+          uv run pytest -q
+
+  install-mac:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install (install.sh, from this commit)
+        env:
+          PHOTO_SORTER_SOURCE: ${{ github.workspace }}
+          PHOTO_SORTER_UNATTENDED: "1"
+        run: bash install.sh
+      - name: Start Photo Sorter and open it
+        run: |
+          test -x "$HOME/Desktop/Photo Sorter.command"
+          cd "$HOME" && "$HOME/.local/bin/photo-sorter" serve --port 8080 > "$HOME/serve.log" 2>&1 &
+          for i in $(seq 1 30); do curl -fsS http://127.0.0.1:8080/healthz && break; sleep 2; done
+          curl -fsS http://127.0.0.1:8080/healthz
+          curl -sS -o /dev/null -w "first page: HTTP %{http_code}\n" http://127.0.0.1:8080/login
+      - name: Uninstall (uninstall.sh)
+        env:
+          PHOTO_SORTER_UNATTENDED: "1"
+        run: |
+          bash uninstall.sh
+          test ! -e "$HOME/.local/bin/photo-sorter"
+          test ! -e "$HOME/Desktop/Photo Sorter.command"
+
+  install-windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: powershell    # Windows PowerShell 5.1, what a researcher's PC has
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install (install.ps1, run the way the README's line runs it)
+        run: |
+          $ErrorActionPreference = "Continue"
+          $env:PHOTO_SORTER_SOURCE = "${{ github.workspace }}"
+          $env:PHOTO_SORTER_UNATTENDED = "1"
+          Get-Content -Raw install.ps1 | Invoke-Expression
+      - name: Start Photo Sorter and open it
+        run: |
+          $desktop = [Environment]::GetFolderPath("Desktop")
+          if (-not (Test-Path (Join-Path $desktop "Photo Sorter.lnk"))) { throw "no Desktop icon" }
+          $exe = Join-Path $env:USERPROFILE ".local\bin\photo-sorter.exe"
+          Start-Process $exe -ArgumentList "serve", "--port", "8080" -WorkingDirectory $env:USERPROFILE
+          $ok = $false
+          for ($i = 0; $i -lt 30 -and -not $ok; $i++) {
+            try { Invoke-WebRequest http://127.0.0.1:8080/healthz -UseBasicParsing | Out-Null; $ok = $true } catch { Start-Sleep 2 }
+          }
+          if (-not $ok) { throw "Photo Sorter did not start" }
+          (Invoke-WebRequest http://127.0.0.1:8080/healthz -UseBasicParsing).Content
+      - name: Uninstall (uninstall.ps1)
+        run: |
+          $ErrorActionPreference = "Continue"
+          $env:PHOTO_SORTER_UNATTENDED = "1"
+          Get-Content -Raw uninstall.ps1 | Invoke-Expression
+          if (Test-Path (Join-Path $env:USERPROFILE ".local\bin\photo-sorter.exe")) { throw "still installed" }

@@ -17,14 +17,30 @@ Inbox/IMG_4101.jpg ──► embed (SigLIP 2 locally, or Vertex AI in the cloud)
                    ──► move + rename to Photos - Coral/Outplants/APAL/apal_013.jpg   (undoable)
 ```
 
-## Install by hand, development
+## Installing
 
-The installers (`deploy/install.command`, `deploy/install.ps1`) run `uv tool install ".[researcher]"` from this
-folder, then `photo-sorter setup` (downloads the image model to the Hugging Face cache), then write a Desktop
-launcher that runs `photo-sorter serve --open`. The uninstallers reverse that, using `photo-sorter setup
---remove-model` for the model. Everything they do is logged (`~/Library/Logs/photo-sorter-install.log` on a Mac).
+Researchers paste one line (see the README). It downloads `install.sh` (Mac) or `install.ps1` (Windows) from
+this repository and runs it. The script:
 
-`uv tool install --python 3.12 ".[researcher]"` from this folder, then `photo-sorter serve --open`.
+1. checks the computer (Mac: Apple chip, because PyTorch has no Intel Mac builds since 2.3; Windows: 64-bit
+   Intel/AMD, plus the Microsoft Visual C++ Runtime that PyTorch needs);
+2. installs [uv](https://docs.astral.sh/uv/) if it is missing, without changing the shell's PATH;
+3. runs `uv tool install "photo-sorter[researcher] @ <this repo's main.zip>"` with `UV_PYTHON_PREFERENCE=only-managed`,
+   so the app gets its own Python 3.12 and never uses conda, Homebrew or system Pythons, and nothing needs git;
+4. runs `photo-sorter setup`, which downloads the image model into the Hugging Face cache;
+5. writes a Desktop launcher (`Photo Sorter.command` on a Mac, a `Photo Sorter.lnk` shortcut on Windows) that
+   runs `photo-sorter serve --open`.
+
+Everything goes into the user's folder; the log is `~/Library/Logs/photo-sorter-install.log` (Mac) or
+`%LOCALAPPDATA%\photo-sorter-install.log` (Windows). `uninstall.sh` / `uninstall.ps1` reverse it, using
+`photo-sorter setup --remove-model` so the model's files are really freed.
+
+Options, as environment variables: `PHOTO_SORTER_SOURCE=<folder or URL>` installs from a local copy or another
+archive (for example a release), and `PHOTO_SORTER_UNATTENDED=1` skips the question and does not open the app.
+From a checkout: `PHOTO_SORTER_SOURCE=. bash install.sh`. CI (`.github/workflows/ci.yml`) runs exactly this on a
+Mac and on Windows for every push: install, start, check, uninstall.
+
+By hand instead: `uv tool install --python 3.12 ".[researcher]"` from this folder, then `photo-sorter serve --open`.
 Developers: `uv sync --extra dev && uv run pytest`.
 
 > Python 3.11 to 3.13. The default model `google/siglip2-base-patch16-224` needs about 4 GB of RAM.
@@ -69,11 +85,12 @@ everyone who opens it gets the list automatically.
 **Per folder**, in `<folder>/.sorter/settings.json` (written by the setup page; all keys optional):
 
 ```json
-{ "inbox": "Inbox", "min_confidence": 0.15, "review_category": "Review", "review_action": "move",
+{ "inbox": "", "min_confidence": 0.15, "review_category": "Review", "review_action": "move",
   "naming": { "pattern": "{slug}_{n:03d}{ext}" }, "training_subfolder": "_training_data" }
 ```
 
-`"inbox": ""` means new photos are read from the folder itself. **Per computer or server**, the model comes from
+`"inbox": ""` (the default) sorts the photos at the top of the folder itself; `"inbox": "Inbox"` reads new photos
+from a separate subfolder instead (the app's "Use a separate folder for new photos" link). **Per computer or server**, the model comes from
 the environment: `PHOTO_SORTER_PROVIDER` (`siglip` on laptops, `vertex` when hosted), `PHOTO_SORTER_MODEL`,
 `GOOGLE_CLOUD_PROJECT`. The last folder used on a laptop is remembered in `~/.config/photo-sorter/app.json`.
 
@@ -207,6 +224,8 @@ Google Cloud project; the steps double as a Google Cloud tour.
    The "unverified app" warning on sign-in is expected for an internal tool.
 4. **OAuth clients** (Credentials > Create credentials > OAuth client ID):
    * *Desktop app* → download JSON → save as `~/.config/photo-sorter/client_secret.json` on each laptop
+     (Windows: `%USERPROFILE%\.config\photo-sorter\client_secret.json`), or put it at the top of a local copy
+     of this repository and install from it with `PHOTO_SORTER_SOURCE`
      (or set `GOOGLE_OAUTH_CLIENT_JSON` to the path or the JSON itself). Used by `photo-sorter auth`.
    * *Web application* → authorized redirect URIs `http://localhost:8080/auth/callback` and later
      `https://<cloud-run-url>/auth/callback` → download JSON →
@@ -264,6 +283,7 @@ photo_sorter/manifest.py         .sorter/manifest.jsonl inside the photo folder
 photo_sorter/web/                FastAPI + HTMX UI (also the Cloud Run entry point)
 photo_sorter/cli.py              auth, setup, scan, classify, file, undo, refs, eval, serve
 photo_sorter/legacy_icloud.py    iCloud shared-album flow (fetch / classify / apply)
-deploy/                          Dockerfile, Cloud Run scripts, docker-compose, laptop installers and uninstallers
+install.sh, install.ps1           laptop installers (uninstall.sh, uninstall.ps1 remove everything)
+deploy/                          Dockerfile, Cloud Run scripts, docker-compose
 tests/                           pytest (fake embedder, fake Drive, web client)
 ```

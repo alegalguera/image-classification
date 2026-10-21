@@ -2,8 +2,11 @@
 .git
 results
 tests
-deploy/*.command
-deploy/*.ps1
+install.sh
+install.ps1
+uninstall.sh
+uninstall.ps1
+.github
 __pycache__
 *.pyc
 .env

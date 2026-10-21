@@ -49,16 +49,18 @@ def test_laptop_first_run_picks_folder_inbox_and_categories(app_dir, tmp_path):
     assert c.get("/login").status_code == 303
     assert c.get("/").headers["location"] == "/setup"                    # no folder yet
     r = c.get("/setup")
-    assert "Where are your photos?" in r.text and "A folder on this computer" in r.text and "A Google Drive folder" in r.text
+    assert "Which folder has your photos?" in r.text and "Choose a folder" in r.text and "Google Drive" in r.text
     b = c.get("/setup/browse", params={"path": str(photos)})
     assert "📁 Coral" in b.text and "📁 Sponges" in b.text and "2 photos directly in it" in b.text
     assert "is+not+a+folder" in c.post("/setup/folder", data={"kind": "local", "path": str(tmp_path / "nope")}).headers["location"]
 
     r = c.post("/setup/folder", data={"kind": "local", "path": str(photos)})
-    assert r.headers["location"] == "/setup/inbox"
+    assert r.headers["location"] == "/setup/categories"                           # no inbox question: the folder itself is sorted
     assert json.loads((app_dir / "app.json").read_text())["folder"] == str(photos.resolve())
+    assert json.loads((photos / ".sorter" / "settings.json").read_text()) == {"inbox": ""}
+    # a separate folder for new photos stays available as a setting
     r = c.get("/setup/inbox")
-    assert 'value="self" checked' in r.text and "2 photos are there now" in r.text   # photos on top, no Inbox: suggest "this folder"
+    assert 'value="self" checked' in r.text and "2 photos are there now" in r.text
     r = c.post("/setup/inbox", data={"mode": "sub"})
     assert r.headers["location"] == "/setup/categories" and (photos / "Inbox").is_dir()
     assert json.loads((photos / ".sorter" / "settings.json").read_text()) == {"inbox": "Inbox"}
@@ -166,9 +168,7 @@ def test_hosted_sign_in_then_paste_a_drive_link(app_dir, monkeypatch):
     assert c.get("/setup/browse").status_code == 404
 
     r = c.post("/setup/folder", data={"kind": "drive", "link": "https://drive.google.com/drive/folders/FOLDERid_12345?usp=sharing"})
-    assert r.headers["location"] == "/setup/inbox"
-    assert "photo is there now" in c.get("/setup/inbox").text
-    assert c.post("/setup/inbox", data={"mode": "self"}).headers["location"] == "/setup/categories"
+    assert r.headers["location"] == "/setup/categories"
     assert c.post("/setup/categories", data={"mode": "empty"}).headers["location"] == "/categories"
     c.post("/categories/add", data={"parent": "", "name": "Coral", "description": "hard coral"})
     names = {f["name"]: f for f in drive.store.values()}
@@ -203,3 +203,32 @@ def test_ready_made_lists(app_dir, tmp_path):
     assert c.get("/setup/categories").headers["location"] == "/categories"
     assert "already+has+categories" in c.post("/setup/categories", data={"mode": "preset:reef-basics"}).headers["location"]
     assert "APAL" in (photos / "CATEGORIES.md").read_text()
+
+
+def test_folder_itself_is_sorted_and_guide_says_where(app_dir, tmp_path):
+    folder = tmp_path / "Field trip"
+    folder.mkdir()
+    (folder / "a.jpg").write_bytes(make_image(RED))
+    c = TestClient(create_app(base_config()), follow_redirects=False)
+    c.get("/login")
+    c.post("/setup/folder", data={"kind": "local", "path": str(folder)})
+    c.post("/setup/categories", data={"mode": "preset:reef-basics"})
+    page = c.get("/")
+    assert "1 unsorted image" in page.text                          # the photo at the top of the folder
+    (folder / "a.jpg").unlink()
+    c.post("/scan")
+    page = c.get("/")
+    assert "Put new photos in the Field trip folder" in page.text and "Use a separate folder for new photos" in page.text
+
+
+def test_setup_recommends_drive_for_desktop_without_a_sign_in_file(app_dir, monkeypatch):
+    from photo_sorter.storage import drive_auth
+
+    monkeypatch.setattr(drive_auth, "has_client", lambda: False)
+    c = TestClient(create_app(base_config()), follow_redirects=False)
+    c.get("/login")
+    r = c.get("/setup")
+    assert "Photos in Google Drive?" in r.text and "Get Google Drive for Desktop" in r.text
+    assert "client_secret" not in r.text and "Paste a Google Drive link" not in r.text
+    monkeypatch.setattr(drive_auth, "has_client", lambda: True)
+    assert "Paste a Google Drive link" in c.get("/setup").text

@@ -298,7 +298,7 @@ class Session:
             self.preds = {k: v for k, v in self.preds.items() if k in self.items}
         self.scanned = True
         self.error = None
-        self.event(f"inbox: {len(items)} image(s), {len(self.pending())} unsorted")
+        self.event(f"found {len(items)} photo(s), {len(self.pending())} not sorted yet")
 
     def start(self) -> None:
         """Classify everything unsorted, in the background (or inline in sync mode)."""
@@ -489,8 +489,8 @@ class Session:
     def inbox_info(self) -> dict:
         """Where new photos go, for the empty-state guide."""
         st, inbox = self.sorter.storage, self.cfg.inbox
-        info = {"name": inbox or "the main folder", "path": None, "url": None, "exists": True,
-                "skipped": list(getattr(st, "skipped", []))}
+        info = {"name": inbox or _short(st.root_label).removeprefix("Drive: "), "root": inbox in ("", "."),
+                "path": None, "url": None, "exists": True, "skipped": list(getattr(st, "skipped", []))}
         if hasattr(st, "root"):          # local folder
             p = st.root if inbox in ("", ".") else st.root / inbox
             info.update(path=str(p), exists=p.is_dir())
@@ -707,8 +707,14 @@ def create_app(cfg: Config) -> FastAPI:
                 "more": max(0, len(dirs) - 400), "photos": photos, "err": err, "shortcuts": local_shortcuts()}
 
     def next_step(s: Session) -> str:
-        if folder_settings(s.sorter.storage) is None:
-            return "/setup/inbox"
+        """After a folder is chosen. Photos are sorted right where they are (no separate inbox), unless the folder
+        already has an Inbox subfolder; /setup/inbox changes that later."""
+        st = s.sorter.storage
+        if folder_settings(st) is None:
+            inbox = "Inbox" if st.folder_id(["Inbox"]) is not None else ""
+            save_folder_settings(st, inbox=inbox)
+            s.cfg.inbox = st.inbox = inbox
+            s.scan(force=True)
         if s.cfg.categories_in_folder and s._cat_text is None:
             return "/setup/categories"
         return "/"
@@ -768,7 +774,7 @@ def create_app(cfg: Config) -> FastAPI:
         has_sub = st.folder_id(["Inbox"]) is not None
         at_top = len(st.list_folder([]))
         return render(request, "setup.html", step="inbox", s=s, has_sub=has_sub, at_top=at_top,
-                      mode="self" if (at_top and not has_sub) else "sub")
+                      mode="sub" if s.cfg.inbox else "self")
 
     @app.post("/setup/inbox")
     def setup_inbox_save(request: Request, mode: str = Form("sub")):
@@ -1027,7 +1033,7 @@ def create_app(cfg: Config) -> FastAPI:
         if p is None:
             item = s.items.get(item_id)
             if item is None:
-                raise HTTPException(404, "this image is no longer in the inbox; rescan")
+                raise HTTPException(404, "this photo is no longer waiting to be sorted; look for new photos")
             p = Prediction(item, Verdict(s.cfg.review_category, 0.0, "filed by hand", method="user"), s.cfg.threshold, s.cfg.review_category)
         return p
 
@@ -1274,7 +1280,7 @@ def create_app(cfg: Config) -> FastAPI:
         s = require(request)
         item = s.items.get(item_id)
         if not item:
-            raise HTTPException(404, "this image is no longer in the inbox; rescan")
+            raise HTTPException(404, "this photo is no longer waiting to be sorted; look for new photos")
         if category == s.cfg.review_category:
             raise HTTPException(400, "pick a category, not the review folder")
         category, _ = resolve_category(s, category, new_category)

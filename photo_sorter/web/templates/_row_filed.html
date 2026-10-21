@@ -3,5 +3,5 @@
   {% if rec %}<td><div class="fname ok">✓ {{ rec.new_name }}</div><div class="why">was {{ rec.orig_name }}</div></td>
   <td><span class="muted">{{ category }}</span></td>
   <td class="act"><button class="sm ghost" hx-post="/undo" hx-vals='{{ {"id": [rec.id]}|tojson }}'>↶ Undo</button></td>
-  {% else %}<td colspan="3"><span class="muted">{{ p.item.name }} stays in the inbox (review_action = keep).</span></td>{% endif %}
+  {% else %}<td colspan="3"><span class="muted">{{ p.item.name }} stays where it is (review_action = keep).</span></td>{% endif %}
 </tr>

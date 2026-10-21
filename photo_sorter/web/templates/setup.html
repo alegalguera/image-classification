@@ -1,47 +1,57 @@
 {% extends "base.html" %}{% block content %}
 <div class="setup">
+  {% if step != 'inbox' %}
   <div class="steps">
-    <div class="step {{ 'active' if step == 'folder' else 'done' }}"><span class="n">{{ '1' if step == 'folder' else '✓' }}</span>Photo folder</div>
+    <div class="step {{ 'active' if step == 'folder' else 'done' }}"><span class="n">{{ '1' if step == 'folder' else '✓' }}</span>Your photo folder</div>
     <div class="line {{ 'done' if step != 'folder' }}"></div>
-    <div class="step {{ 'active' if step == 'inbox' else ('done' if step == 'categories' else '') }}"><span class="n">{{ '✓' if step == 'categories' else '2' }}</span>New photos</div>
-    <div class="line {{ 'done' if step == 'categories' }}"></div>
-    <div class="step {{ 'active' if step == 'categories' }}"><span class="n">3</span>Categories</div>
+    <div class="step {{ 'active' if step == 'categories' }}"><span class="n">2</span>Categories</div>
   </div>
+  {% endif %}
 
 {% if step == 'folder' %}
   <div class="eyebrow">Setup</div>
-  <h1>Where are your photos?</h1>
-  <p class="sub">Pick the folder to sort. Category folders are created inside it, and it keeps its own category list, so
-    everyone who opens the same folder sorts the same way.{% if current %} Now: <b>{{ current }}</b>{% endif %}</p>
+  <h1>Which folder has your photos?</h1>
+  <p class="sub">Photo Sorter sorts the photos in it into category folders, right inside that folder. Later, just add new
+    photos to the same folder and sort again.{% if current %} Now: <b>{{ current }}</b>{% endif %}</p>
   {% if err %}<div class="banner err">{{ err }}</div>{% endif %}
   <div class="cards">
     {% if not hosted %}
     <form class="card" method="post" action="/setup/folder">
-      <h2>💻 A folder on this computer</h2>
-      <p class="muted" style="margin:0">Includes Google Drive for Desktop: your Drive folders appear here too, no sign-in needed.</p>
+      <h2>💻 Choose a folder</h2>
+      <p class="muted" style="margin:0">Any folder on this computer. If you use Google Drive for Desktop, your Drive folders are listed too.</p>
       {% include "_browse.html" %}
     </form>
     {% endif %}
+    {% if hosted or google.client %}
     <form class="card" method="post" action="/setup/folder">
-      <h2>☁️ A Google Drive folder</h2>
-      <p class="muted" style="margin:0">{% if hosted %}Photos stay in Drive; this server only looks at them and moves them for you.{% else %}Works without Drive for Desktop. Photos stay in Drive; only small previews are downloaded.{% endif %}</p>
+      <h2>☁️ Paste a Google Drive link</h2>
+      <p class="muted" style="margin:0">{% if hosted %}Photos stay in Drive; this server only looks at them and moves them for you.{% else %}Photos stay in Drive; only small previews are downloaded.{% endif %}</p>
       {% include "_google.html" %}
     </form>
+    {% else %}
+    <div class="card">
+      <h2>☁️ Photos in Google Drive?</h2>
+      <p class="muted" style="margin:0">Install <b>Google Drive for Desktop</b>, free from Google. Your Drive then shows up on the
+        left, as <i>Google Drive · My Drive</i> or <i>Shared drives</i>, and you choose a folder there like any other.</p>
+      <div><a class="btn" href="https://www.google.com/drive/download/" target="_blank" rel="noopener">Get Google Drive for Desktop</a></div>
+      <p class="hint" style="margin:0">After installing it, reload this page.</p>
+    </div>
+    {% endif %}
   </div>
   {% if s %}<p class="hint"><a href="/">← back to sorting {{ s.sorter.storage.root_label|short }}</a></p>{% endif %}
 
 {% elif step == 'inbox' %}
-  <div class="eyebrow">Setup · {{ s.sorter.storage.root_label|short }}</div>
+  <div class="eyebrow">Settings · {{ s.sorter.storage.root_label|short }}</div>
   <h1>Where do new photos arrive?</h1>
-  <p class="sub">The tool sorts what it finds there into category folders. You can change this later on this page.</p>
+  <p class="sub">Photo Sorter sorts the photos it finds there into the category folders.</p>
   <form method="post" action="/setup/inbox">
-    <label class="choice"><input type="radio" name="mode" value="sub" {{ 'checked' if mode == 'sub' }}>
-      <span><b>In an "Inbox" folder inside it</b>
-        <span class="muted">{% if has_sub %}There is one already.{% else %}It is created for you.{% endif %} Drop new photos there; sorted ones move out to their category folders.</span></span></label>
     <label class="choice"><input type="radio" name="mode" value="self" {{ 'checked' if mode == 'self' }}>
-      <span><b>Straight into this folder</b>
-        <span class="muted">{% if at_top %}{{ at_top }} photo{{ 's' if at_top != 1 }} {{ 'are' if at_top != 1 else 'is' }} there now. {% endif %}Good for a shared Drive folder people already upload to. Category folders are created next to the photos.</span></span></label>
-    <button class="primary big">Continue →</button>
+      <span><b>Right in this folder</b> <span class="muted">(simplest)</span>
+        <span class="muted">{% if at_top %}{{ at_top }} photo{{ 's' if at_top != 1 }} {{ 'are' if at_top != 1 else 'is' }} there now. {% endif %}Add new photos to the folder; sorted ones move into the category folders inside it.</span></span></label>
+    <label class="choice"><input type="radio" name="mode" value="sub" {{ 'checked' if mode == 'sub' }}>
+      <span><b>In a separate "Inbox" folder inside it</b>
+        <span class="muted">{% if has_sub %}There is one already.{% else %}It is created for you.{% endif %} Useful when the folder holds other files you don't want sorted.</span></span></label>
+    <div class="row"><button class="primary big">Save</button> <a href="/">Cancel</a></div>
   </form>
 
 {% else %}
