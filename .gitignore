@@ -1,6 +1,16 @@
 .venv/
 __pycache__/
 *.pyc
+.pytest_cache/
 results/
 .env
 *.nosync
+.DS_Store
+*.log
+# your own files: configs, real category lists, notes (never published)
+private/
+categories.json
+# photo folders' working data and Google sign-in files
+.sorter/
+client_secret*.json
+token.json

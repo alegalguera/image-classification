@@ -4,7 +4,7 @@ from photo_sorter import taxonomy
 from photo_sorter.config import load_config
 from photo_sorter.taxonomy import SEP, Taxonomy, dump, leaves, parse
 
-LEGACY = """# I.CARE album categories
+LEGACY = """# Album categories
 
 Legend: ✅ confirmed · ⚠️ guessed
 

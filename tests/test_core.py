@@ -17,7 +17,7 @@ from conftest import BLUE, GREEN, RED, make_image
 def test_slug_and_names():
     assert slugify("APAL") == "apal"
     assert slugify("Sponge Disease/Bleaching") == "sponge_disease_bleaching"
-    assert slugify("Kylie and Mike") == "kylie_and_mike"
+    assert slugify("Staff and Interns") == "staff_and_interns"
     assert slugify("Photos - Fragging") == "fragging"
     assert slugify("Videos - Coral") == "coral"
     assert safe_dirname("Sponge Disease/Bleaching") == "Sponge Disease-Bleaching"

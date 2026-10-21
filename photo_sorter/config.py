@@ -3,7 +3,7 @@
 Two Markdown layouts are understood:
 
 1. Flat: `## Category` headings, each followed by a description paragraph
-   (see categories.example.md). A `# Videos` H1 starts the video-only section.
+   (an older layout). A `# Videos` H1 starts the video-only section.
 
 2. Tree (CATEGORIES.md): a nested bullet list of folders and albums, e.g.
 
