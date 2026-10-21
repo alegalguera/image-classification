@@ -3,6 +3,7 @@
   <div class="eyebrow">Categories</div>
   <h1>What to sort into</h1>
   <p class="sub">Photos are filed into the <b>last level</b> of each branch. Click any name or description to edit it; it saves when you press Enter or click away.</p>
+  <p class="sub"><b>How it learns:</b> it reads each description, so say what the photos look like. For things words can't pin down, like one coral species versus another, give the category example photos with the <i class="ex-ico"></i> button; every photo you file into a category counts as an example too.</p>
   {% if not t %}
   <div class="banner err">Categories are written inline in the JSON config. Point <code>categories_file</code> at a Markdown file to edit them here.</div>
   {% else %}{% include "_tree.html" %}{% endif %}

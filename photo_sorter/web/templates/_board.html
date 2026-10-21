@@ -25,9 +25,9 @@
 <section class="hero">
   {% with key='unsorted', ids=unsorted_ids, count=c.unsorted, size='big', title='Show all unsorted images' %}{% include "_pile.html" %}{% endwith %}
   <div class="text">
-    <div class="eyebrow">Waiting in {{ inbox.name }}</div>
+    <div class="eyebrow">Waiting to be sorted</div>
     <h1>{{ c.unsorted }} unsorted image{{ 's' if c.unsorted != 1 }}</h1>
-    <p class="sub">Click the pile to look through them. Sorting looks at each image and suggests a category from your list. Nothing is moved until you file.</p>
+    <p class="sub">Click the pile to look through them. Sorting looks at each image and suggests a category from your list. Nothing is moved until you file. It learns as you go: from your category descriptions, from example photos, and from every photo you file.</p>
     <div class="facts">
       <span>⏱ <b>≈ {{ s.estimate|secs }}</b></span>
       {% if not s.model_loaded and plan.local %}<span>+ <b>~6s</b> to load the model the first time</span>{% endif %}
@@ -49,7 +49,7 @@
 <section>
   <div class="section-head">
     <h2>{{ 'Sorted' if sorted_piles else 'Filed' }}</h2>
-    {% if sorted_piles %}<span class="muted">{{ c.labeled }} ready to file{% if c.review %} · {{ c.review }} need{{ 's' if c.review == 1 }} your decision{% endif %}. Click a pile to check it.</span>{% endif %}
+    {% if sorted_piles %}<span class="muted">{{ c.labeled }} ready to file{% if c.review %} · {{ c.review }} need{{ 's' if c.review == 1 }} your decision{% endif %}. Click a pile to check it. Every photo you file also teaches its category.</span>{% endif %}
     <span class="sp"></span>
     {% if c.labeled %}<button class="primary" hx-post="/file-all" hx-target="#toast" hx-swap="innerHTML"
       hx-confirm="Move all {{ c.labeled }} labeled image(s) into their category folders?">File all {{ c.labeled }} labeled →</button>{% endif %}

@@ -2,6 +2,8 @@
 
 **Sorts research photos into folders automatically, on your own computer.**
 
+![84 reef photos waiting to be sorted in Photo Sorter](docs/images/unsorted-pile.jpg)
+
 ## What it is
 
 Photo Sorter is a free app for research teams that take lots of photos, for example on a coral reef project.
@@ -10,28 +12,82 @@ You tell it which categories you use, and it files your photos into the right fo
 ## What it does
 
 - **Sorts** the photos in a folder into your categories: coral, sponge, diver, people, or whatever you choose.
-- **Files and renames** them neatly: `Coral/coral_001.jpg`, `Coral/coral_002.jpg`, and so on.
-- **Asks you when it isn't sure**, instead of guessing.
-- **Learns** from example photos, and from every photo you file.
+- **Creates a folder for each category** and moves the photos into them with tidy names: `Coral/coral_001.jpg`.
+- **Asks you when it isn't sure**, instead of guessing, and lets you decide with one key per photo.
+- **Learns from you**: from your category descriptions, from example photos, and from every photo you file.
 - **Can undo** every move.
 
 ## How it works
 
+**1. Choose the folder that has your photos.** Any folder on your computer works, including Google Drive folders
+through [Google Drive for Desktop](https://www.google.com/drive/download/).
+
+![Choosing the photo folder](docs/images/choose-folder.png)
+
+**2. Press Sort.** In seconds, every photo gets a suggested category. Here, 84 photos from one week of reef work
+were sorted in 7 seconds on a laptop: 61 were clear, and 23 wait for your decision.
+
+![The photos sorted into piles, one per category, plus a Needs review pile](docs/images/sorted-piles.jpg)
+
+**3. Check, then File.** Open a pile to check it, then press **File**. Photo Sorter creates a folder for each
+category inside your photo folder and moves the photos into it:
+
 ```text
-📁 your photo folder   →   ▶ Sort   →   👀 you check   →   ✓ File   →   📁 Coral/coral_001.jpg
+Reef survey/                        ← the folder you chose
+├── Coral/
+│   ├── coral_001.jpg
+│   └── coral_002.jpg
+├── Coral bleaching/
+│   └── coral_bleaching_001.jpg
+├── Sponge/
+│   └── sponge_001.jpg
+├── Diver/
+│   └── diver_001.jpg
+├── IMG_4207.jpg                    ← new photos wait here until the next Sort
+└── CATEGORIES.md                   ← your category list, shared with everyone who opens the folder
 ```
 
-1. You choose the folder that has your photos, and list your categories in plain words, for example
-   *Sponge: sponge fragments on ropes underwater*.
-2. You press **Sort**. An image-recognition model (free, made by Google) looks at each photo and compares it with
-   your words and with example photos. It runs on your computer: your photos are never uploaded.
-3. You check the suggestions and press **File**. The photos move into category folders inside that same folder.
-4. Later, add new photos to the folder and press **Sort** again. Photos already filed stay in their category folders.
+With a nested list, folders nest too, for example `Photos - Coral/Outplants/APAL/apal_001.jpg`.
+Later, just add new photos to the folder and press **Sort** again.
 
-**Your photos can be in any folder on your computer.** If your team keeps them in Google Drive, install
-[Google Drive for Desktop](https://www.google.com/drive/download/) (free, from Google). Your Drive folders then show
-up on your computer like any other folder, and Photo Sorter sorts them right there, for everyone who shares them.
-The category list is saved inside the photo folder too, so the whole team sorts the same way.
+### Needs review: one key per photo
+
+When Photo Sorter isn't sure, the photo waits in **Needs review**. Press **▶ Decide** to go through them one by
+one: the photo shows large, with your categories as numbered tags and its best guess starred (★).
+
+![Deciding a photo that is a close call between Coral and Sponge](docs/images/needs-review.jpg)
+
+| Key | Does |
+| --- | --- |
+| `1`–`9` | file the photo into that category and move to the next one |
+| `Enter` | accept the starred suggestion |
+| type a few letters | find a category, or create a new one |
+| `←` `→` | skip back and forth |
+| `Shift` + `Enter` | add the photo as an **example** of the category, without moving it |
+| `Ctrl`/`⌘` + `Z` | undo |
+
+### It learns from you
+
+Nothing needs to be "trained", and it gets better as you use it:
+
+- **Your words.** Each category can have a short description of what its photos look like, for example
+  *Sponge: sponge fragments on ropes underwater*. Photo Sorter compares every photo with these words.
+- **Example photos.** Give a category 5 to 20 example photos (the 🖼 button on the **Categories** page: drop
+  photos in, or search the web). New photos are compared with them. This is how it learns things words can't
+  describe well, such as one coral species from another (APAL from ACER) or specific people.
+- **Every photo you file.** Filed photos count as examples of their category too, so each decision you make
+  teaches it. Changes apply on the next **Sort**.
+
+### The model, and why
+
+Photo Sorter uses **SigLIP 2** (`google/siglip2-base-patch16-224`), a free, open image-and-text model made by
+Google. It runs on your own computer, so there's no account, no cost per photo, and your photos never leave
+it. Because it understands pictures and words together, plain category descriptions work from day one, and
+comparing new photos with your examples lets it learn without any training step. It's small enough for a laptop
+(a 1.4 GB download, under a tenth of a second per photo on an Apple M1).
+
+Large AI services such as Claude or Gemini could do this too, but they cost money per photo and need an account
+and internet access; training a custom model needs thousands of labelled photos first.
 
 ## Install
 
@@ -72,36 +128,27 @@ You can read exactly what the installers do: [install.sh](install.sh) (Mac) and 
 
 1. Double-click **Photo Sorter** on your Desktop. It opens in your web browser. A small window opens too: keep it
    open while you work, because closing it stops Photo Sorter.
-2. **Choose the folder that has your photos.** With Google Drive for Desktop, your Drive folders are listed too.
-3. **Choose your categories:** use the folders already there, pick a ready-made list (such as
-   *Coral reef restoration*), or start empty.
+2. **Choose the folder that has your photos.**
+3. **Choose your categories:** use the folders already there, pick a ready-made list (*Coral reef restoration*, or
+   the shorter *Reef basics*), or start empty. You can change the list any time on the **Categories** page.
 
 ### Every day
 
 1. Add new photos to your photo folder.
 2. Press **Sort**. Nothing moves yet; Photo Sorter only suggests.
-3. Check the piles. Photos it isn't sure about wait in **Needs review**: press **▶ Decide**, then a number key to
-   choose each photo's category (← → to skip, Ctrl/⌘ + Z to undo).
-4. Press **File** to move the photos into their category folders.
+3. Press **▶ Decide** for the photos in **Needs review**, and **File** for the piles that look right.
 
 Changed your mind? Press **Undo**, or open **History** and use **Move to…** on any photo.
-
-### Make it smarter
-
-- On the **Categories** page, describe each category in a few words.
-- Give each category 5 to 20 example photos: click 🖼 next to it, then drop photos in or search the web.
-- Photos you file count as examples too, so it gets better as you use it.
-- Some things can't be described in words, like specific people or species that look alike. Those need example photos.
 
 ## Problems?
 
 | What you see | What to do |
 | --- | --- |
-| The installer shows **✗** | It says where the details are. Send that file, or a screenshot, to whoever helps you with Photo Sorter. |
+| The installer shows **✗** | It shows the last lines of its log. Send a screenshot to whoever helps you with Photo Sorter. |
 | Windows says a script "is not digitally signed" | Don't run a downloaded file: paste the line from **Install** into PowerShell instead. |
 | "This Mac has an Intel processor" | Photo Sorter needs a Mac with an Apple chip (M1 or newer) for now. |
 | The page doesn't open, or says it can't connect | Double-click **Photo Sorter** again. |
-| Almost everything lands in **Needs review** | Describe your categories and add example photos (see *Make it smarter*). |
+| Almost everything lands in **Needs review** | Describe your categories and add example photos (see *It learns from you*). |
 
 ## Remove it
 
