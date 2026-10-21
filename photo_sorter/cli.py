@@ -68,6 +68,11 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--dry-run", action="store_true")
 
     a = ap.parse_args(argv)
+    for stream in (sys.stdout, sys.stderr):   # e.g. "≈" or "→" printed to a Windows log file: show "?" instead of crashing
+        try:
+            stream.reconfigure(errors="replace")
+        except (AttributeError, ValueError):
+            pass
     try:
         if not a.config and Path(CONFIG_DEFAULT).exists():
             a.config = CONFIG_DEFAULT

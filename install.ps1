@@ -158,7 +158,7 @@ function Install-PhotoSorter {
   $Exe = Join-Path $BinDir "photo-sorter.exe"
   if (Test-Path $ModelDir) { $code = Invoke-Quietly "Checking the image model" $Exe @("setup") "" }
   else { $code = Invoke-Quietly "Downloading the image model" $Exe @("setup") $HfHome }
-  if ($code -ne 0) { throw "Getting the image model failed. Check the internet connection and run the installer again." }
+  if ($code -ne 0) { throw "Getting the image model failed." }
   Ok "Image model ready" $ModelDir
 
   # 3. the Desktop icon
@@ -191,7 +191,11 @@ try {
 } catch {
   Write-Host ""
   Write-Host "  X  $($_.Exception.Message)" -ForegroundColor Red
-  if (Test-Path $Log) { Write-Host "     The details are in $Log" }
+  if (Test-Path $Log) {
+    Write-Host "     Last lines of the log:" -ForegroundColor DarkGray
+    Get-Content $Log -Tail 6 | ForEach-Object { Write-Host ("       " + "$_".Substring(0, [math]::Min(160, "$_".Length))) -ForegroundColor DarkGray }
+    Write-Host "     The full details are in $Log"
+  }
   Write-Host "     Send that file, or a screenshot of this window, to whoever helps you with Photo Sorter."
   Write-Host ""
   if ($env:PHOTO_SORTER_UNATTENDED) { exit 1 }

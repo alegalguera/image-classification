@@ -32,7 +32,11 @@ short() { echo "${1/#$HOME/~}"; }                       # /Users/you/... -> ~/..
 ok() { printf "  ${G}✓${X} %-22s ${D}%s${X}\n" "$1" "$2"; }
 fail() {
   printf "\n  ${R}${B}✗ %s${X}\n" "$1"
-  [ -s "$LOG" ] && printf "  The details are in ${B}%s${X}\n" "$(short "$LOG")"
+  if [ -s "$LOG" ]; then
+    printf "  ${D}Last lines of the log:${X}\n"
+    tail -n 6 "$LOG" | cut -c1-160 | sed "s/^/     ${D}/; s/$/${X}/"
+    printf "  The full details are in ${B}%s${X}\n" "$(short "$LOG")"
+  fi
   printf "  Send that file, or a screenshot of this window, to whoever helps you with Photo Sorter.\n\n"
   exit 1
 }
@@ -135,7 +139,7 @@ main() {
   else
     HF_START=$(hf_kb)
     SPIN_EXTRA=model_mb spin "Downloading the image model" sh -c 'cd "$HOME" && photo-sorter setup'
-  fi || fail "Getting the image model failed. Check the internet connection and run the installer again."
+  fi || fail "Getting the image model failed."
   local saved
   saved="$(grep -o 'saved in .*' "$LOG" | tail -1)"
   ok "Image model ready" "${saved#saved in }"

@@ -11,7 +11,6 @@ from __future__ import annotations
 
 import os
 import platform
-import resource
 import subprocess
 import sys
 import time
@@ -86,6 +85,8 @@ def machine() -> str:
             with open("/proc/cpuinfo") as f:
                 name = next((ln.split(":", 1)[1].strip() for ln in f if ln.startswith("model name")), name)
             mem = os.sysconf("SC_PAGE_SIZE") * os.sysconf("SC_PHYS_PAGES")
+        elif sys.platform == "win32":
+            name, mem = _windows_machine(name)
         else:
             mem = 0
     except Exception:  # noqa: BLE001
@@ -96,10 +97,55 @@ def machine() -> str:
     return " · ".join(p for p in parts if p)
 
 
+def _windows_machine(name: str) -> tuple[str, int]:
+    """(processor name, bytes of RAM) on Windows."""
+    import ctypes
+    import winreg
+
+    with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"HARDWARE\DESCRIPTION\System\CentralProcessor\0") as k:
+        name = str(winreg.QueryValueEx(k, "ProcessorNameString")[0]).strip() or name
+
+    class MemoryStatus(ctypes.Structure):
+        _fields_ = [("dwLength", ctypes.c_ulong), ("dwMemoryLoad", ctypes.c_ulong)] + \
+                   [(f, ctypes.c_ulonglong) for f in ("total", "avail", "total_page", "avail_page", "total_virtual",
+                                                      "avail_virtual", "avail_extended")]
+
+    st = MemoryStatus()
+    st.dwLength = ctypes.sizeof(st)
+    ok = ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(st))
+    return name, int(st.total) if ok else 0
+
+
 def peak_rss() -> int:
-    """Peak resident memory of this process in bytes."""
+    """Peak resident memory of this process in bytes (0 when unknown)."""
+    try:
+        import resource                     # macOS and Linux
+    except ImportError:
+        return _windows_peak_rss()
     r = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
     return int(r if sys.platform == "darwin" else r * 1024)
+
+
+def _windows_peak_rss() -> int:
+    try:
+        import ctypes
+        from ctypes import wintypes
+
+        class Counters(ctypes.Structure):
+            _fields_ = [("cb", wintypes.DWORD), ("PageFaultCount", wintypes.DWORD)] + \
+                       [(f, ctypes.c_size_t) for f in ("PeakWorkingSetSize", "WorkingSetSize", "QuotaPeakPagedPoolUsage",
+                                                       "QuotaPagedPoolUsage", "QuotaPeakNonPagedPoolUsage",
+                                                       "QuotaNonPagedPoolUsage", "PagefileUsage", "PeakPagefileUsage")]
+
+        c = Counters()
+        c.cb = ctypes.sizeof(c)
+        kernel32 = ctypes.windll.kernel32
+        kernel32.GetCurrentProcess.restype = wintypes.HANDLE
+        if not kernel32.K32GetProcessMemoryInfo(kernel32.GetCurrentProcess(), ctypes.byref(c), c.cb):
+            return 0
+        return int(c.PeakWorkingSetSize)
+    except Exception:  # noqa: BLE001 - only used for the "what it used" report
+        return 0
 
 
 def pricing_for(model: str, overrides: dict | None, default: dict | None) -> dict | None:

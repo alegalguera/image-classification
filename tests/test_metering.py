@@ -87,3 +87,23 @@ def test_runs_log_roundtrip(root):
     assert len(runs) == 2 and runs[0]["computed"] == 3 and runs[0]["cached"] == 1
     t = metering.totals(runs)
     assert t["runs"] == 2 and t["images"] == 6 and t["cost_unknown"] is True
+
+
+def test_every_module_loads_without_unix_only_resource():
+    """Windows has no `resource` module: nothing the app loads may need it (it crashed every command once)."""
+    import subprocess
+    import sys
+
+    code = (
+        "import sys, pkgutil, importlib\n"
+        "sys.modules['resource'] = None\n"
+        "import photo_sorter\n"
+        "for m in pkgutil.walk_packages(photo_sorter.__path__, 'photo_sorter.'):\n"
+        "    if not m.name.endswith('__main__'):\n"
+        "        importlib.import_module(m.name)\n"
+        "from photo_sorter import metering\n"
+        "assert metering.peak_rss() == 0 and metering.machine()\n"
+        "print('ok')\n"
+    )
+    out = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True)
+    assert out.returncode == 0 and out.stdout.strip() == "ok", out.stderr[-2000:]
