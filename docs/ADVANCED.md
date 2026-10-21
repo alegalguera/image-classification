@@ -28,7 +28,7 @@ this repository and runs it. The script:
 3. runs `uv tool install "photo-sorter[researcher] @ <this repo's main.zip>"` with `UV_PYTHON_PREFERENCE=only-managed`,
    so the app gets its own Python 3.12 and never uses conda, Homebrew or system Pythons, and nothing needs git;
 4. runs `photo-sorter setup`, which downloads the image model into the Hugging Face cache;
-5. writes a Desktop launcher (`Photo Sorter.command` on a Mac, a `Photo Sorter.lnk` shortcut on Windows) that
+5. writes a Desktop launcher (`ReeFile.command` on a Mac, a `ReeFile.lnk` shortcut on Windows) that
    runs `photo-sorter serve --open`.
 
 Everything goes into the user's folder; the log is `~/Library/Logs/photo-sorter-install.log` (Mac) or

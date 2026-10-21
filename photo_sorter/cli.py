@@ -403,12 +403,12 @@ def cmd_serve(a, cfg) -> int:
             urllib.request.urlopen(url + "/healthz", timeout=2).read()
         except OSError:
             raise RuntimeError(f"port {a.port} is used by another program; start with --port 8090 (or another number)") from None
-        print(f"photo-sorter is already running: {url}")
+        print(f"ReeFile is already running: {url}")
         if a.open:
             webbrowser.open(url)
         return 0
     app = create_app(cfg)
-    print(f"Open {url}   (keep this window open; closing it stops photo-sorter)", flush=True)
+    print(f"Open {url}   (keep this window open; closing it stops ReeFile)", flush=True)
     if a.open:
         threading.Timer(1.5, webbrowser.open, args=(url,)).start()
     uvicorn.run(app, host=a.host, port=a.port, log_level="warning")

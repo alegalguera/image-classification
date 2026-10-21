@@ -11,7 +11,7 @@
 {% if step == 'folder' %}
   <div class="eyebrow">Setup</div>
   <h1>Which folder has your photos?</h1>
-  <p class="sub">Photo Sorter sorts the photos in it into category folders, right inside that folder. Later, just add new
+  <p class="sub">ReeFile sorts the photos in it into category folders, right inside that folder. Later, just add new
     photos to the same folder and sort again.{% if current %} Now: <b>{{ current }}</b>{% endif %}</p>
   {% if err %}<div class="banner err">{{ err }}</div>{% endif %}
   <div class="cards">
@@ -43,7 +43,7 @@
 {% elif step == 'inbox' %}
   <div class="eyebrow">Settings · {{ s.sorter.storage.root_label|short }}</div>
   <h1>Where do new photos arrive?</h1>
-  <p class="sub">Photo Sorter sorts the photos it finds there into the category folders.</p>
+  <p class="sub">ReeFile sorts the photos it finds there into the category folders.</p>
   <form method="post" action="/setup/inbox">
     <label class="choice"><input type="radio" name="mode" value="self" {{ 'checked' if mode == 'self' }}>
       <span><b>Right in this folder</b> <span class="muted">(simplest)</span>

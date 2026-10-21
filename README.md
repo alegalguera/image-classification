@@ -1,12 +1,12 @@
-# Photo Sorter
+# ReeFile
 
 **Sorts research photos into folders automatically, on your own computer.**
 
-![84 reef photos waiting to be sorted in Photo Sorter](docs/images/unsorted-pile.jpg)
+![84 reef photos waiting to be sorted in ReeFile](docs/images/unsorted-pile.jpg)
 
 ## What it is
 
-Photo Sorter is a free app for research teams that take lots of photos, for example on a coral reef project.
+ReeFile is a free app for research teams that take lots of photos, for example on a coral reef project.
 You tell it which categories you use, and it files your photos into the right folders.
 
 ## What it does
@@ -25,11 +25,11 @@ through [Google Drive for Desktop](https://www.google.com/drive/download/).
 ![Choosing the photo folder](docs/images/choose-folder.png)
 
 **2. Press Sort.** In seconds, every photo gets a suggested category. Here, 84 photos from one week of reef work
-were sorted in 7 seconds on a laptop: 61 were clear, and 23 wait for your decision.
+were sorted in about 6 seconds on a laptop: 61 were clear, and 23 wait for your decision.
 
 ![The photos sorted into piles, one per category, plus a Needs review pile](docs/images/sorted-piles.jpg)
 
-**3. Check, then File.** Open a pile to check it, then press **File**. Photo Sorter creates a folder for each
+**3. Check, then File.** Open a pile to check it, then press **File**. ReeFile creates a folder for each
 category inside your photo folder and moves the photos into it:
 
 ```text
@@ -52,7 +52,7 @@ Later, just add new photos to the folder and press **Sort** again.
 
 ### Needs review: one key per photo
 
-When Photo Sorter isn't sure, the photo waits in **Needs review**. Press **▶ Decide** to go through them one by
+When ReeFile isn't sure, the photo waits in **Needs review**. Press **▶ Decide** to go through them one by
 one: the photo shows large, with your categories as numbered tags and its best guess starred (★).
 
 ![Deciding a photo that is a close call between Coral and Sponge](docs/images/needs-review.jpg)
@@ -71,7 +71,7 @@ one: the photo shows large, with your categories as numbered tags and its best g
 Nothing needs to be "trained", and it gets better as you use it:
 
 - **Your words.** Each category can have a short description of what its photos look like, for example
-  *Sponge: sponge fragments on ropes underwater*. Photo Sorter compares every photo with these words.
+  *Sponge: sponge fragments on ropes underwater*. ReeFile compares every photo with these words.
 - **Example photos.** Give a category 5 to 20 example photos (the 🖼 button on the **Categories** page: drop
   photos in, or search the web). New photos are compared with them. This is how it learns things words can't
   describe well, such as one coral species from another (APAL from ACER) or specific people.
@@ -80,7 +80,7 @@ Nothing needs to be "trained", and it gets better as you use it:
 
 ### The model, and why
 
-Photo Sorter uses **SigLIP 2** (`google/siglip2-base-patch16-224`), a free, open image-and-text model made by
+ReeFile uses **SigLIP 2** (`google/siglip2-base-patch16-224`), a free, open image-and-text model made by
 Google. It runs on your own computer, so there's no account, no cost per photo, and your photos never leave
 it. Because it understands pictures and words together, plain category descriptions work from day one, and
 comparing new photos with your examples lets it learn without any training step. It's small enough for a laptop
@@ -105,7 +105,7 @@ inside your user folder, and doesn't need an administrator password.
    ```
 
 3. It shows what it will install and where, then asks before it starts. Press Enter and wait for
-   **✓ Photo Sorter is installed**. The first time takes a few minutes.
+   **✓ ReeFile is installed**. The first time takes a few minutes.
 
 ### Windows
 
@@ -117,17 +117,17 @@ inside your user folder, and doesn't need an administrator password.
    ```
 
 3. It shows what it will install and where, then asks before it starts. Windows may ask once for permission to add
-   a free Microsoft component that Photo Sorter needs.
+   a free Microsoft component that ReeFile needs.
 
-Either way, you now have a **Photo Sorter** icon on your Desktop. To update, paste the same line again.
+Either way, you now have a **ReeFile** icon on your Desktop. To update, paste the same line again.
 You can read exactly what the installers do: [install.sh](install.sh) (Mac) and [install.ps1](install.ps1) (Windows).
 
 ## How to use it
 
 ### The first time
 
-1. Double-click **Photo Sorter** on your Desktop. It opens in your web browser. A small window opens too: keep it
-   open while you work, because closing it stops Photo Sorter.
+1. Double-click **ReeFile** on your Desktop. It opens in your web browser. A small window opens too: keep it
+   open while you work, because closing it stops ReeFile.
 2. **Choose the folder that has your photos.**
 3. **Choose your categories:** use the folders already there, pick a ready-made list (*Coral reef restoration*, or
    the shorter *Reef basics*), or start empty. You can change the list any time on the **Categories** page.
@@ -135,7 +135,7 @@ You can read exactly what the installers do: [install.sh](install.sh) (Mac) and 
 ### Every day
 
 1. Add new photos to your photo folder.
-2. Press **Sort**. Nothing moves yet; Photo Sorter only suggests.
+2. Press **Sort**. Nothing moves yet; ReeFile only suggests.
 3. Press **▶ Decide** for the photos in **Needs review**, and **File** for the piles that look right.
 
 Changed your mind? Press **Undo**, or open **History** and use **Move to…** on any photo.
@@ -144,10 +144,10 @@ Changed your mind? Press **Undo**, or open **History** and use **Move to…** on
 
 | What you see | What to do |
 | --- | --- |
-| The installer shows **✗** | It shows the last lines of its log. Send a screenshot to whoever helps you with Photo Sorter. |
+| The installer shows **✗** | It shows the last lines of its log. Send a screenshot to whoever helps you with ReeFile. |
 | Windows says a script "is not digitally signed" | Don't run a downloaded file: paste the line from **Install** into PowerShell instead. |
-| "This Mac has an Intel processor" | Photo Sorter needs a Mac with an Apple chip (M1 or newer) for now. |
-| The page doesn't open, or says it can't connect | Double-click **Photo Sorter** again. |
+| "This Mac has an Intel processor" | ReeFile needs a Mac with an Apple chip (M1 or newer) for now. |
+| The page doesn't open, or says it can't connect | Double-click **ReeFile** again. |
 | Almost everything lands in **Needs review** | Describe your categories and add example photos (see *It learns from you*). |
 
 ## Remove it

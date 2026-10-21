@@ -1,11 +1,11 @@
 #!/bin/bash
-# Photo Sorter installer for macOS. Open Terminal and paste:
+# ReeFile installer for macOS. Open Terminal and paste:
 #
 #   curl -LsSf https://raw.githubusercontent.com/alegalguera/image-classification/main/install.sh | bash
 #
-# It says what it will install and where, and asks before starting. Running it again updates Photo Sorter.
+# It says what it will install and where, and asks before starting. Running it again updates ReeFile.
 # Everything goes into your user folder: no administrator password, and nothing to install first, because
-# uv (the free tool it installs Photo Sorter with) brings its own copy of Python. To remove it: uninstall.sh.
+# uv (the free tool it installs ReeFile with) brings its own copy of Python. To remove it: uninstall.sh.
 #
 # For developers and automation:
 #   PHOTO_SORTER_SOURCE=<folder or URL>   install from a local copy (or another archive) instead of GitHub
@@ -18,7 +18,8 @@ APP_DIR="$HOME/.local/share/uv/tools/photo-sorter"
 HF_DIR="${HF_HOME:-$HOME/.cache/huggingface}"
 MODEL_DIR="$HF_DIR/hub/models--google--siglip2-base-patch16-224"
 CONF_DIR="${PHOTO_SORTER_HOME:-$HOME/.config/photo-sorter}"
-LAUNCHER="$HOME/Desktop/Photo Sorter.command"
+LAUNCHER="$HOME/Desktop/ReeFile.command"
+OLD_LAUNCHER="$HOME/Desktop/Photo Sorter.command"     # from versions before the ReeFile name
 LOG="$HOME/Library/Logs/photo-sorter-install.log"
 LINE="━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
@@ -37,7 +38,7 @@ fail() {
     tail -n 6 "$LOG" | cut -c1-160 | sed "s/^/     ${D}/; s/$/${X}/"
     printf "  The full details are in ${B}%s${X}\n" "$(short "$LOG")"
   fi
-  printf "  Send that file, or a screenshot of this window, to whoever helps you with Photo Sorter.\n\n"
+  printf "  Send that file, or a screenshot of this window, to whoever helps you with ReeFile.\n\n"
   exit 1
 }
 hf_kb() { du -sk "$HF_DIR" 2>/dev/null | awk '{print $1 + 0}'; }
@@ -65,7 +66,7 @@ spin() {   # spin "message" command...: runs the command quietly (output goes to
 main() {
   [ "$(uname -s)" = "Darwin" ] || fail "This installer is for Macs. For Windows, see the README."
   if [ "$(sysctl -n hw.optional.arm64 2>/dev/null)" != "1" ]; then
-    fail "This Mac has an Intel processor. Photo Sorter needs a Mac with an Apple chip (M1 or newer): PyTorch, the image-recognition library it uses, no longer supports Intel Macs."
+    fail "This Mac has an Intel processor. ReeFile needs a Mac with an Apple chip (M1 or newer): PyTorch, the image-recognition library it uses, no longer supports Intel Macs."
   fi
   export PATH="$HOME/.local/bin:$PATH"
   export UV_PYTHON_PREFERENCE=only-managed     # always its own Python, never Homebrew's, conda's or the system's
@@ -80,7 +81,7 @@ main() {
 
   [ -t 1 ] && clear 2>/dev/null
   printf "\n  ${T}%s${X}\n" "$LINE"
-  printf "   ${T}><(((('>${X}   ${B}PHOTO SORTER${X}  ·  installer\n"
+  printf "   ${T}><(((('>${X}   ${B}ReeFile${X}  ·  installer\n"
   printf "   Sorts research photos into folders, right here on this Mac.\n"
   printf "  ${T}%s${X}\n\n" "$LINE"
   printf "  ${B}What it will do${X}\n\n"
@@ -99,10 +100,10 @@ main() {
     printf "   ${T}2${X}  Download the image model (SigLIP 2, by Google)   1.4 GB\n"
   fi
   printf "      ${D}from huggingface.co  →  %s${X}\n" "$(short "$MODEL_DIR")"
-  printf "   ${T}3${X}  Put a \"Photo Sorter\" icon on your Desktop\n"
+  printf "   ${T}3${X}  Put a \"ReeFile\" icon on your Desktop\n"
   printf "      ${D}→  %s${X}\n\n" "$(short "$LAUNCHER")"
   printf "  Everything stays in your user folder: no administrator password, nothing else to install.\n"
-  printf "  Your photos are never uploaded: Photo Sorter runs on this Mac.\n"
+  printf "  Your photos are never uploaded: ReeFile runs on this Mac.\n"
   if [ "${free_gb:-99}" -lt 4 ]; then
     printf "  ${Y}Free space: %s GB. About 3 GB are needed; free up some space first if you can.${X}\n" "$free_gb"
   else
@@ -116,7 +117,7 @@ main() {
 
   # 1. the app
   if pgrep -f "photo-sorter serve" >/dev/null 2>&1; then
-    pkill -f "photo-sorter serve" && ok "Closed Photo Sorter" "it restarts with the new version at the end"
+    pkill -f "photo-sorter serve" && ok "Closed ReeFile" "it restarts with the new version at the end"
   fi
   if ! command -v uv >/dev/null 2>&1; then
     spin "Installing uv" sh -c "curl -LsSf https://astral.sh/uv/install.sh | env UV_NO_MODIFY_PATH=1 sh" \
@@ -147,21 +148,22 @@ main() {
   # 3. the Desktop icon
   cat > "$LAUNCHER" <<'EOS'
 #!/bin/bash
-# Starts Photo Sorter and opens it in your browser. Keep this window open while you work: closing it stops Photo Sorter.
+# Starts ReeFile and opens it in your browser. Keep this window open while you work: closing it stops ReeFile.
 export PATH="$HOME/.local/bin:$PATH"
 cd "$HOME" && photo-sorter serve --open
 EOS
   chmod +x "$LAUNCHER" || fail "Could not create the Desktop icon."
+  rm -f "$OLD_LAUNCHER"
   ok "Desktop icon" "$(short "$LAUNCHER")"
 
   printf "\n  ${T}%s${X}\n" "$LINE"
-  printf "   ${G}${B}✓ Photo Sorter is installed${X}\n\n"
-  printf "   ${B}Start it${X}    double-click \"Photo Sorter\" on your Desktop\n"
+  printf "   ${G}${B}✓ ReeFile is installed${X}\n\n"
+  printf "   ${B}Start it${X}    double-click \"ReeFile\" on your Desktop\n"
   printf "   ${B}Update it${X}   paste the same line again\n"
   printf "   ${B}Remove it${X}   paste:  ${D}curl -LsSf %s/uninstall.sh | bash${X}\n" "$RAW"
   printf "  ${T}%s${X}\n\n" "$LINE"
   if [ -z "$PHOTO_SORTER_UNATTENDED" ]; then
-    printf "  Opening Photo Sorter now: it shows up in your browser. Keep its small window open while you work.\n\n"
+    printf "  Opening ReeFile now: it shows up in your browser. Keep its small window open while you work.\n\n"
     open "$LAUNCHER"
   fi
 }

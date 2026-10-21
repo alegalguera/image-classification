@@ -1,10 +1,10 @@
-# Photo Sorter installer for Windows 10 and 11. Open PowerShell (no need for "Run as administrator") and paste:
+# ReeFile installer for Windows 10 and 11. Open PowerShell (no need for "Run as administrator") and paste:
 #
 #   powershell -ExecutionPolicy ByPass -NoProfile -c "irm https://raw.githubusercontent.com/alegalguera/image-classification/main/install.ps1 | iex"
 #
-# It says what it will install and where, and asks before starting. Running it again updates Photo Sorter.
+# It says what it will install and where, and asks before starting. Running it again updates ReeFile.
 # Everything goes into your user folder, and nothing needs to be installed first: uv (the free tool it installs
-# Photo Sorter with) brings its own copy of Python, separate from any other Python or conda on this PC.
+# ReeFile with) brings its own copy of Python, separate from any other Python or conda on this PC.
 # To remove it: uninstall.ps1, the same way.
 #
 # For developers and automation:
@@ -74,7 +74,7 @@ function Install-PhotoSorter {
   $Unattended = [bool]$env:PHOTO_SORTER_UNATTENDED
   $Arch = if ($env:PROCESSOR_ARCHITEW6432) { $env:PROCESSOR_ARCHITEW6432 } else { $env:PROCESSOR_ARCHITECTURE }
   if ($Arch -ne "AMD64") {
-    throw "This PC has an $Arch processor. Photo Sorter needs a standard 64-bit PC (Intel or AMD): PyTorch, the image-recognition library it uses, has no version for this processor yet."
+    throw "This PC has an $Arch processor. ReeFile needs a standard 64-bit PC (Intel or AMD): PyTorch, the image-recognition library it uses, has no version for this processor yet."
   }
   $BinDir = Join-Path $env:USERPROFILE ".local\bin"
   $env:Path = "$BinDir;$env:Path"
@@ -94,14 +94,14 @@ function Install-PhotoSorter {
   $ModelDir = Join-Path $HfHome "hub\models--google--siglip2-base-patch16-224"
   $ConfDir = if ($env:PHOTO_SORTER_HOME) { $env:PHOTO_SORTER_HOME } else { Join-Path $env:USERPROFILE ".config\photo-sorter" }
   $Desktop = [Environment]::GetFolderPath("Desktop")
-  $Shortcut = Join-Path $Desktop "Photo Sorter.lnk"
+  $Shortcut = Join-Path $Desktop "ReeFile.lnk"
   Set-Content -Path $Log -Value "photo-sorter install log"
   $Free = [math]::Floor((Get-PSDrive -Name $env:USERPROFILE.Substring(0, 1)).Free / 1GB)
 
   if (-not $Unattended) { Clear-Host }
   Write-Host ""
   Write-Host "  $Line" -ForegroundColor Cyan
-  Write-Host "   ><(((('>   PHOTO SORTER  -  installer" -ForegroundColor Cyan
+  Write-Host "   ><(((('>   ReeFile  -  installer" -ForegroundColor Cyan
   Write-Host "   Sorts research photos into folders, right here on this PC."
   Write-Host "  $Line" -ForegroundColor Cyan
   Write-Host ""
@@ -115,11 +115,11 @@ function Install-PhotoSorter {
   if (Test-Path $ModelDir) { Write-Host "   2  Image model (SigLIP 2, by Google)                already here" }
   else { Write-Host "   2  Download the image model (SigLIP 2, by Google)   1.4 GB" }
   Write-Host "      from huggingface.co  ->  $ModelDir" -ForegroundColor DarkGray
-  Write-Host "   3  Put a 'Photo Sorter' icon on your Desktop"
+  Write-Host "   3  Put a 'ReeFile' icon on your Desktop"
   Write-Host "      ->  $Shortcut" -ForegroundColor DarkGray
   Write-Host ""
   Write-Host "  Everything stays in your user folder, separate from any other Python or conda on this PC."
-  Write-Host "  Your photos are never uploaded: Photo Sorter runs on this PC."
+  Write-Host "  Your photos are never uploaded: ReeFile runs on this PC."
   if ($Free -lt 4) { Write-Host "  Free space: $Free GB. About 3 GB are needed; free up some space first if you can." -ForegroundColor Yellow }
   else { Write-Host "  Free space: $Free GB (about 3 GB needed)" -ForegroundColor DarkGray }
   Write-Host "  A log of every step is kept in $Log" -ForegroundColor DarkGray
@@ -128,7 +128,7 @@ function Install-PhotoSorter {
 
   # 1. the app
   Get-CimInstance Win32_Process -ErrorAction SilentlyContinue | Where-Object { $_.CommandLine -like "*photo-sorter*serve*" } |
-    ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue; Ok "Closed Photo Sorter" "it restarts with the new version at the end" }
+    ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue; Ok "Closed ReeFile" "it restarts with the new version at the end" }
   if (-not (Test-VCRuntime)) {
     Write-Host "  ... Installing the Microsoft Visual C++ Runtime (Windows asks for permission)"
     $vc = Join-Path $env:TEMP "vc_redist.x64.exe"
@@ -162,26 +162,26 @@ function Install-PhotoSorter {
   Ok "Image model ready" $ModelDir
 
   # 3. the Desktop icon
-  Remove-Item (Join-Path $Desktop "Photo Sorter.cmd") -ErrorAction SilentlyContinue      # from older installers
+  Remove-Item (Join-Path $Desktop "Photo Sorter.cmd"), (Join-Path $Desktop "Photo Sorter.lnk") -ErrorAction SilentlyContinue   # older names
   $lnk = (New-Object -ComObject WScript.Shell).CreateShortcut($Shortcut)
   $lnk.TargetPath = $Exe
   $lnk.Arguments = "serve --open"
   $lnk.WorkingDirectory = $env:USERPROFILE
-  $lnk.Description = "Start Photo Sorter (it opens in your browser)"
+  $lnk.Description = "Start ReeFile (it opens in your browser)"
   $lnk.Save()
   Ok "Desktop icon" $Shortcut
 
   Write-Host ""
   Write-Host "  $Line" -ForegroundColor Cyan
-  Write-Host "   Photo Sorter is installed" -ForegroundColor Green
+  Write-Host "   ReeFile is installed" -ForegroundColor Green
   Write-Host ""
-  Write-Host "   Start it    double-click 'Photo Sorter' on your Desktop"
+  Write-Host "   Start it    double-click 'ReeFile' on your Desktop"
   Write-Host "   Update it   paste the same line again"
   Write-Host "   Remove it   paste:  powershell -ExecutionPolicy ByPass -NoProfile -c `"irm $Raw/uninstall.ps1 | iex`""
   Write-Host "  $Line" -ForegroundColor Cyan
   Write-Host ""
   if (-not $Unattended) {
-    Write-Host "  Opening Photo Sorter now: it shows up in your browser. Keep its small window open while you work."
+    Write-Host "  Opening ReeFile now: it shows up in your browser. Keep its small window open while you work."
     Start-Process $Shortcut
   }
 }
@@ -196,7 +196,7 @@ try {
     Get-Content $Log -Tail 6 | ForEach-Object { Write-Host ("       " + "$_".Substring(0, [math]::Min(160, "$_".Length))) -ForegroundColor DarkGray }
     Write-Host "     The full details are in $Log"
   }
-  Write-Host "     Send that file, or a screenshot of this window, to whoever helps you with Photo Sorter."
+  Write-Host "     Send that file, or a screenshot of this window, to whoever helps you with ReeFile."
   Write-Host ""
   if ($env:PHOTO_SORTER_UNATTENDED) { exit 1 }
 }

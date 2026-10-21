@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>reef · image sorter</title>
+<title>ReeFile · image sorter</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
@@ -396,7 +396,7 @@
 <body class="{{ 'is-sorting' if s and s.running }}">
 <header>
   {% if s and s.running %}<i class="fish"></i><i class="fish b"></i>{% endif %}
-  <a class="logo" href="/" title="reef · image sorter">{% include "_logo.svg" %}<span class="word">reef</span><small>image sorter</small></a>
+  <a class="logo" href="/" title="ReeFile · image sorter">{% include "_logo.svg" %}<span class="word">ReeFile</span><small>image sorter</small></a>
   <nav>
     <a href="/" class="{{ 'active' if request.url.path == '/' else '' }}">Sort</a>
     <a href="/categories" class="{{ 'active' if request.url.path.startswith('/categories') else '' }}">Categories<b>{{ cfg.categories|length + (cfg.video_categories|length if cfg.video_categories else 0) }}</b></a>

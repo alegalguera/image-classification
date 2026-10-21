@@ -35,9 +35,9 @@ jobs:
       - name: Show the install log
         if: failure()
         run: tail -n 80 "$HOME/Library/Logs/photo-sorter-install.log"
-      - name: Start Photo Sorter and open it
+      - name: Start ReeFile and open it
         run: |
-          test -x "$HOME/Desktop/Photo Sorter.command"
+          test -x "$HOME/Desktop/ReeFile.command"
           cd "$HOME" && "$HOME/.local/bin/photo-sorter" serve --port 8080 > "$HOME/serve.log" 2>&1 &
           for i in $(seq 1 30); do curl -fsS http://127.0.0.1:8080/healthz && break; sleep 2; done
           curl -fsS http://127.0.0.1:8080/healthz
@@ -48,7 +48,7 @@ jobs:
         run: |
           bash uninstall.sh
           test ! -e "$HOME/.local/bin/photo-sorter"
-          test ! -e "$HOME/Desktop/Photo Sorter.command"
+          test ! -e "$HOME/Desktop/ReeFile.command"
 
   install-windows:
     runs-on: windows-latest
@@ -66,17 +66,17 @@ jobs:
       - name: Show the install log
         if: failure()
         run: Get-Content (Join-Path $env:LOCALAPPDATA "photo-sorter-install.log") -Tail 80
-      - name: Start Photo Sorter and open it
+      - name: Start ReeFile and open it
         run: |
           $desktop = [Environment]::GetFolderPath("Desktop")
-          if (-not (Test-Path (Join-Path $desktop "Photo Sorter.lnk"))) { throw "no Desktop icon" }
+          if (-not (Test-Path (Join-Path $desktop "ReeFile.lnk"))) { throw "no Desktop icon" }
           $exe = Join-Path $env:USERPROFILE ".local\bin\photo-sorter.exe"
           Start-Process $exe -ArgumentList "serve", "--port", "8080" -WorkingDirectory $env:USERPROFILE
           $ok = $false
           for ($i = 0; $i -lt 30 -and -not $ok; $i++) {
             try { Invoke-WebRequest http://127.0.0.1:8080/healthz -UseBasicParsing | Out-Null; $ok = $true } catch { Start-Sleep 2 }
           }
-          if (-not $ok) { throw "Photo Sorter did not start" }
+          if (-not $ok) { throw "ReeFile did not start" }
           (Invoke-WebRequest http://127.0.0.1:8080/healthz -UseBasicParsing).Content
       - name: Uninstall (uninstall.ps1)
         run: |

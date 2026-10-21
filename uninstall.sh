@@ -1,5 +1,5 @@
 #!/bin/bash
-# Removes Photo Sorter from this Mac: the app, the image model, the Desktop icon and its settings.
+# Removes ReeFile from this Mac: the app, the image model, the Desktop icon and its settings.
 # Your photos, their folders and their category lists (CATEGORIES.md) are never touched. Open Terminal and paste:
 #
 #   curl -LsSf https://raw.githubusercontent.com/alegalguera/image-classification/main/uninstall.sh | bash
@@ -9,7 +9,8 @@
 APP_DIR="$HOME/.local/share/uv/tools/photo-sorter"
 MODEL_DIR="${HF_HOME:-$HOME/.cache/huggingface}/hub/models--google--siglip2-base-patch16-224"
 CONF_DIR="${PHOTO_SORTER_HOME:-$HOME/.config/photo-sorter}"
-LAUNCHER="$HOME/Desktop/Photo Sorter.command"
+LAUNCHER="$HOME/Desktop/ReeFile.command"
+OLD_LAUNCHER="$HOME/Desktop/Photo Sorter.command"     # from versions before the ReeFile name
 LOG="$HOME/Library/Logs/photo-sorter-install.log"
 LINE="━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
@@ -27,7 +28,7 @@ main() {
   export PATH="$HOME/.local/bin:$PATH"
   [ -t 1 ] && clear 2>/dev/null
   printf "\n  ${T}%s${X}\n" "$LINE"
-  printf "   ${T}><(((('>${X}   ${B}PHOTO SORTER${X}  ·  remove\n"
+  printf "   ${T}><(((('>${X}   ${B}ReeFile${X}  ·  remove\n"
   printf "  ${T}%s${X}\n\n" "$LINE"
   printf "  ${B}This removes${X}\n\n"
   printf "   the app                     %-10s ${D}%s${X}\n" "$(size "$APP_DIR")" "$(short "$APP_DIR")"
@@ -36,21 +37,21 @@ main() {
   printf "   settings, Google sign-in    %-10s ${D}%s${X}\n\n" "" "$(short "$CONF_DIR")"
   printf "  Your photos, their folders and their category lists stay exactly where they are.\n\n"
   if [ -z "$PHOTO_SORTER_UNATTENDED" ] && [ -r /dev/tty ]; then
-    read -r -p "  Press Enter to remove Photo Sorter, or Control-C to cancel. " _ < /dev/tty
+    read -r -p "  Press Enter to remove ReeFile, or Control-C to cancel. " _ < /dev/tty
     echo
   fi
 
-  pkill -f "photo-sorter serve" 2>/dev/null && ok "Closed Photo Sorter" ""
+  pkill -f "photo-sorter serve" 2>/dev/null && ok "Closed ReeFile" ""
   command -v photo-sorter >/dev/null 2>&1 && (cd "$HOME" && photo-sorter setup --remove-model >/dev/null 2>&1 </dev/null)
   command -v uv >/dev/null 2>&1 && uv tool uninstall photo-sorter >/dev/null 2>&1 </dev/null
   rm -rf "$APP_DIR" "$HOME/.local/bin/photo-sorter"
   ok "App removed" "$(short "$APP_DIR")"
   rm -rf "$MODEL_DIR" && ok "Image model removed" "$(short "$MODEL_DIR")"
-  rm -f "$LAUNCHER" && ok "Desktop icon removed" "$(short "$LAUNCHER")"
+  rm -f "$LAUNCHER" "$OLD_LAUNCHER" && ok "Desktop icon removed" "$(short "$LAUNCHER")"
   rm -rf "$CONF_DIR" && ok "Settings removed" "$(short "$CONF_DIR")"
   rm -f "$LOG"
 
-  printf "\n  ${G}${B}✓ Photo Sorter is removed.${X}\n"
+  printf "\n  ${G}${B}✓ ReeFile is removed.${X}\n"
   printf "  ${D}uv, the tool that installed it, stays in %s because other apps may use it.${X}\n" "$(short "$HOME/.local/bin/uv")"
   printf "  ${D}To remove it too: rm ~/.local/bin/uv ~/.local/bin/uvx${X}\n\n"
 }
